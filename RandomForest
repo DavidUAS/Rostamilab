@@ -1,0 +1,236 @@
+library(ggplot2)
+library(cowplot)
+library(randomForest)
+
+data <- read.csv("Data/Uppsaladata.CSV")
+
+data[data$pupil == 1,]$pupil <- "Both reacting"
+data[data$pupil == 2,]$pupil <- "One reacting"
+data[data$pupil == 3,]$pupil <- "None reacting"
+
+#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
+#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
+#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
+#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
+#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
+#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
+#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
+#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
+
+data$eGOS <- as.factor(data$eGOS)
+data$age <- as.numeric(data$age)
+data$pupil <- as.factor(data$pupil)
+data$motor <- as.factor(data$motor)
+data$CT <- as.numeric(data$CT)
+
+ind <- sample(2, nrow(data), replace=TRUE, prob = c(0.8, 0.2))
+train.data <- data[ind==1,]
+test.data <- data[ind==2,]
+
+#str(data)
+#head(data)
+
+set.seed(42) #Saving the random seed of the model
+
+############################ Imputing any missing data
+#data.imputed <- rfImpute(eGOS ~ ., data = data, iter=4)
+# model <- randomForest(eGOS ~ ., data=data.imputed, proximity=TRUE)
+
+
+########################### Creating the model
+model <- randomForest(eGOS ~., data=train.data, ntree=500, mtry=1, proximity=TRUE)
+# ntree = number of trees in model, default=500
+# mtry = number of variables at each split, default=sqrt of input variables
+
+model
+
+######################################### MSE / MAE
+y.test <- as.numeric(test.data$eGOS)
+predicted.egos <- as.numeric(predict(model, test.data))
+
+MSE <- mean((y.test - predicted.egos)^2) #MSE for ridge regression
+MAE <- mean(abs(y.test - predicted.egos))
+
+##################################### Create confusion matrix
+
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+actual.egos <- as.integer(test.data$eGOS)
+predicted.egos.confusion <- as.integer(predicted.egos)
+
+confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, predicted.egos.confusion)
+confusion.matrix$Graph
+
+#######################  ROC and AUC for unfavourable / mortality
+library(pROC)
+
+AUC.data <- predict(model, test.data, type="p")
+prob.unfavourable <- rep(NA,nrow(AUC.data))
+for(i in 1:nrow(AUC.data)){
+  prob.sum <- sum(AUC.data[i, 1:4])
+  prob.unfavourable[i] <- prob.sum
+}
+prob.favourable <- 1-prob.unfavourable
+
+true.AUC.data <- as.numeric(actual.egos)
+was.unfavourable <- true.AUC.data <=4
+was.favourable <- !was.unfavourable
+
+
+prob.mortality <- rep(NA,nrow(AUC.data))
+for(i in 1:nrow(AUC.data)){
+  prob.sum <- sum(AUC.data[i, 1])
+  prob.mortality[i] <- prob.sum
+}
+
+true.AUC.data.mortality <- as.numeric(actual.egos)
+was.mortality <- true.AUC.data.mortality ==1
+
+
+ROC.mortality <- roc(predictor = prob.mortality, response = was.mortality)
+
+
+ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourable)
+
+plot(ROC.unfavourable)
+AUC.unfavorable <- auc(ROC.unfavourable)
+
+plot(ROC.mortality)
+AUC.mortality <- auc(ROC.mortality)
+
+
+
+######################### Classifying error rate
+# model$err.rate <- error rate of each decision tree / outcome
+oob.error.data <- data.frame(
+  Trees=rep(1:nrow(model$err.rate), time=3),
+  Type=rep(c("OOB", "1", "2", "3", "4", "5", "6", "7", "8"), each=nrow(model$err.rate)),
+  Error=c(model$err.rate[, "OOB"],
+          model$err.rate[, "1"],
+          model$err.rate[, "2"],
+          model$err.rate[, "3"],
+          model$err.rate[, "4"],
+          model$err.rate[, "5"],
+          model$err.rate[, "6"],
+          model$err.rate[, "7"],
+          model$err.rate[, "8"]))
+
+######################## Plotting the error rates data
+ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
+  geom_line(aes(color=Type))
+
+######################## Modifying the forest ################################################################
+
+######## Changing the number of trees in model (ntree= X), default = 500
+
+######## Changing the number of variables at each split (mtry=x), default=sqrt of input variables ###
+
+
+######## Code for checking the mtry value with the least error rate:
+oob.values <- vector(length=10)
+for(i in 1:10) {
+  temp.model <- randomForest(eGOS ~ ., data=data, mtry=i, ntree=1000)
+  oob.values[i] <- temp.model$err.rate[nrow(temp.model$err.rate),1]
+}
+head(oob.values)
+which.min(oob.values)
+
+
+###################### MDS-plot
+distance.matrix <- dist(1-model$proximity)
+
+mds.scale <- cmdscale(distance.matrix, eig = TRUE, x.ret = FALSE)
+
+mds.var.per <- round(mds.scale$eig/sum(mds.scale$eig)*100, 1)
+
+mds.values <- mds.scale$points
+mds.data <- data.frame(Sample=rownames(mds.values),
+                       X=mds.values[,1],
+                       Y=mds.values[,2],
+                       Status=data$eGOS)
+
+ggplot(data=mds.data, aes(x=X, y=Y, label=Sample)) +
+  geom_text(aes(color=Status)) +
+  theme_bw() +
+  xlab(paste("MDS1 -", mds.var.per[1], "%", sep="")) +
+  ylab(paste("MDS2 -", mds.var.per[2], "%", sep="")) +
+  ggtitle("MDS plot using (1 - Random Forest Proximities)")
+
+
+
+######################################### Testing on Leuven data
+Leuvendata <- read.csv("Data/Leuvendata.CSV")
+
+
+Leuvendata$eGOS <- as.ordered(Leuvendata$eGOS)
+
+Leuvendata$age <- as.numeric(Leuvendata$age)
+Leuvendata$motor <- as.numeric(Leuvendata$motor)
+Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
+Leuvendata$length <- as.numeric(Leuvendata$CT)
+
+
+Leuven.test.set <- Leuvendata
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
+for(i in 1:nrow(Leuven.AUC.data)){
+  prob.sum <- sum(Leuven.AUC.data[i, 1:4])
+  Leuven.prob.unfavourable[i] <- prob.sum
+}
+Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
+
+Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
+Leuven.was.favourable <- !Leuven.was.favourable
+
+
+Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
+for(i in 1:nrow(Leuven.AUC.data)){
+  prob.sum <- sum(Leuven.AUC.data[i, 1])
+  Leuven.prob.mortality[i] <- prob.sum
+}
+
+Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
+
+
+
+Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
+
+
+Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
+
+plot(Leuven.ROC.unfavourable)
+auc(Leuven.ROC.unfavourable)
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
+Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+
+
+confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
+confusion.matrix$Graph
+
+Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
+Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
