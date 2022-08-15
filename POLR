@@ -1,0 +1,199 @@
+library(MASS)
+
+data <- read.csv("Data/Uppsaladata.CSV")
+
+
+data$eGOS <- as.ordered(data$eGOS)
+
+data$age <- as.numeric(data$age)
+data$motor <- as.numeric(data$motor)
+data$pupil <- as.numeric(data$pupil)
+data$length <- as.numeric(data$CT)
+
+
+# Dividing the data into train and test groups
+ind <- sample(2, nrow(data), replace=TRUE, prob = c(0.8, 0.2))
+training.set <- data[ind==1,]
+test.set <- data[ind==2,]
+
+
+model <- polr(eGOS ~  age + motor + pupil + CT, data = training.set, Hess = TRUE)
+#model <- polr(eGOS ~  Age, data = training.set, Hess = TRUE)
+
+summary(model)
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+AUC.data <- predict(model, test.set, type = "p")
+prob.unfavourable <- rep(NA,nrow(AUC.data))
+for(i in 1:nrow(AUC.data)){
+  prob.sum <- sum(AUC.data[i, 1:4])
+  prob.unfavourable[i] <- prob.sum
+}
+prob.favourable <- 1-prob.unfavourable
+
+true.AUC.data <- as.numeric(test.set$eGOS)
+was.unfavourable <- true.AUC.data <=4
+was.favourable <- !was.unfavourable
+
+
+AUC.data <- predict(model, test.set, type = "p")
+prob.mortality <- rep(NA,nrow(AUC.data))
+for(i in 1:nrow(AUC.data)){
+  prob.sum <- sum(AUC.data[i, 1])
+  prob.mortality[i] <- prob.sum
+}
+
+true.AUC.data.mortality <- as.numeric(test.set$eGOS)
+was.mortality <- true.AUC.data.mortality ==1
+
+
+
+ROC.mortality <- roc(predictor = prob.mortality, response = was.mortality)
+
+
+ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourable)
+
+plot(ROC.mortality)
+auc(ROC.mortality)
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+original.predicted <- as.integer(predict(model, test.set))
+actual.egos <- as.integer(test.set$eGOS)
+
+
+confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+confusion.matrix$Graph
+
+MAE <- sum((abs(original.predicted - actual.egos))) / length(actual.egos)
+MSE <- sum((original.predicted - actual.egos)^2) / length(actual.egos)
+
+
+
+############################################################# expansion prediction
+
+prediction.set <- cbind(test.set, predict(model, test.set))
+
+plot(prediction.set$`predict(model, test.set)`)
+
+probabilites <- predict(model, test.set, type = "p")
+
+original.predicted <- as.integer(predict(model, test.set))
+
+weighted.egos <- probabilites
+for (i in 1:8){
+  weighted.egos[, i] <- weighted.egos[, i] * i
+}
+weighted.prediction <- rep(NA, nrow(weighted.egos))
+for (i in 1:nrow(weighted.egos)){
+  weighted.prediction[i] <- round(sum(weighted.egos[i, ]))
+}
+
+expansion.factor <- 1 / (8 - 1)
+expanded.predictions <- weighted.prediction + (weighted.prediction - 8) * expansion.factor
+
+expanded.predictions <- round(expanded.predictions)
+expanded.predictions[expanded.predictions < 1] <- 1
+expanded.predictions[expanded.predictions > 8] <- 8
+
+predicted.egos <- as.integer(expanded.predictions)
+actual.egos <- as.integer(test.set$eGOS)
+
+plot(as.factor(expanded.predictions))
+
+adjusted.MSE <- sum((predicted.egos - actual.egos)^2) / length(actual.egos)
+adjusted.MAE <- sum((abs(predicted.egos - actual.egos))) / length(actual.egos)
+
+
+######################################### Testing on Leuven data
+Leuvendata <- read.csv("Data/Leuvendata.CSV")
+
+
+Leuvendata$eGOS <- as.ordered(Leuvendata$eGOS)
+
+Leuvendata$age <- as.numeric(Leuvendata$age)
+Leuvendata$motor <- as.numeric(Leuvendata$motor)
+Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
+Leuvendata$length <- as.numeric(Leuvendata$CT)
+
+
+Leuven.test.set <- Leuvendata
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
+for(i in 1:nrow(Leuven.AUC.data)){
+  prob.sum <- sum(Leuven.AUC.data[i, 1:4])
+  Leuven.prob.unfavourable[i] <- prob.sum
+}
+Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
+
+Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
+Leuven.was.favourable <- !Leuven.was.favourable
+
+
+Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
+for(i in 1:nrow(Leuven.AUC.data)){
+  prob.sum <- sum(Leuven.AUC.data[i, 1])
+  Leuven.prob.mortality[i] <- prob.sum
+}
+
+Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
+
+
+
+Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
+
+
+Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
+
+plot(Leuven.ROC.unfavourable)
+auc(Leuven.ROC.unfavourable)
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
+Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+
+
+confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
+confusion.matrix$Graph
+
+Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
+Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
+
+######################### Testing on example novel data
+#age <- 15
+#motor <- 6
+#pupil <- 3
+#CT <- 2
+#hb <- 120
+#glucose <- 7
+#test.test <- as.matrix(data.frame(age, motor, pupil, CT, hb, glucose))
+#predict(model, test.test)
