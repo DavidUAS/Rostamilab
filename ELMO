@@ -152,7 +152,7 @@ results
 
 ###################### Example of probability to prediction
 
-weighted.egos <- alpha0.predicted
+weighted.egos <- alpha0.1.predicted
 for (i in 1:8){
   weighted.egos[, i] <- weighted.egos[, i] * i
 }
@@ -181,7 +181,7 @@ source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
 actual.egos <- as.integer(y.test)
-predicted.egos <- as.integer(original.prediction.0)
+predicted.egos <- as.integer(original.prediction.0.1)
 
 confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, predicted.egos)
 confusion.matrix$Graph
@@ -189,7 +189,7 @@ confusion.matrix$Graph
 #######################  ROC and AUC for unfavourable / mortality
 library(pROC)
 
-AUC.data <- predict(alpha0.5.fit, x.test)
+AUC.data <- predict(alpha0.1.fit, x.test)
 prob.unfavourable <- rep(NA,nrow(AUC.data))
 for(i in 1:nrow(AUC.data)){
   prob.sum <- sum(AUC.data[i, 1:4])
@@ -202,7 +202,6 @@ was.unfavourable <- true.AUC.data <=4
 was.favourable <- !was.unfavourable
 
 
-AUC.data <- predict(alpha0.5.fit, x.test)
 prob.mortality <- rep(NA,nrow(AUC.data))
 for(i in 1:nrow(AUC.data)){
   prob.sum <- sum(AUC.data[i, 1])
@@ -220,10 +219,11 @@ ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourab
 
 plot(ROC.unfavourable)
 AUC.unfavorable <- auc(ROC.unfavourable)
+AUC.unfavorable 
 
 plot(ROC.mortality)
 AUC.mortality <- auc(ROC.mortality)
-
+AUC.mortality
 ######################## Expansion prediction
 library(MASS)
 
@@ -263,22 +263,31 @@ Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
 Leuvendata$length <- as.numeric(Leuvendata$CT)
 
 
-Leuven.test.set <- Leuvendata
+Leuven.test.data <- Leuvendata
+
+Leuven.test.dataframe <- Leuven.test.data[, c("age", "motor", "pupil", "CT")]
+Leuven.x.test <- as.matrix(Leuven.test.dataframe)
+
+#test.lable <- as.numeric(test.data$eGOS)
+Leuven.y.test <- Leuven.test.data$eGOS
+Leuven.numeric.y.test <- as.numeric(Leuven.y.test) # y.test needs to be numeric for MSE
+
+
 
 ############################################################# ROC and AUC for unfavourable / mortality
 library(pROC)
 
-Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.AUC.data <- predict(alpha0.1.fit, Leuven.x.test)
 Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
 for(i in 1:nrow(Leuven.AUC.data)){
   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
   Leuven.prob.unfavourable[i] <- prob.sum
 }
-Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
+prob.favourable <- 1-Leuven.prob.unfavourable
 
-Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-Leuven.was.favourable <- !Leuven.was.favourable
+Leuven.was.favourable <- !Leuven.was.unfavourable
 
 
 Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
@@ -287,9 +296,8 @@ for(i in 1:nrow(Leuven.AUC.data)){
   Leuven.prob.mortality[i] <- prob.sum
 }
 
-Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data.mortality <- as.numeric(Leuven.y.test)
 Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
-
 
 
 Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
@@ -298,11 +306,38 @@ Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven
 Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
 
 plot(Leuven.ROC.unfavourable)
-auc(Leuven.ROC.unfavourable)
+Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
+Leuven.AUC.unfavorable 
+
+plot(Leuven.ROC.mortality)
+Leuven.AUC.mortality <- auc(ROC.mortality)
+Leuven.AUC.mortality
 
 
 #confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
 #confusion.matrix$Graph
+
+
+#################################### MSE and MAE
+Leuven.alpha0.1.predicted <- predict(alpha0.1.fit, Leuven.x.test)
+
+Leuven.weighted.egos <- Leuven.alpha0.1.predicted
+for (i in 1:8){
+  Leuven.weighted.egos[, i] <- Leuven.weighted.egos[, i] * i
+}
+
+Leuven.weighted.prediction <- rep(NA, nrow(Leuven.weighted.egos))
+
+for (i in 1:nrow(Leuven.weighted.egos)){
+  Leuven.weighted.prediction[i] <- round(sum(Leuven.weighted.egos[i, ]))
+}
+
+head(Leuven.weighted.prediction)
+
+Leuven.numeric.test.y <- as.numeric(Leuven.y.test)
+Leuven.MSE <- mean((Leuven.numeric.test.y - Leuven.weighted.prediction)^2)
+Leuven.MAE <- mean(abs(Leuven.numeric.test.y - Leuven.weighted.prediction))
+
 ########################original predicted without expansion factor
 library(ggplot2)
 library(reshape)
@@ -312,12 +347,8 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
-Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+Leuven.actual.egos <- as.integer(Leuven.y.test)
+Leuven.predicted.egos <- as.integer(Leuven.weighted.prediction)
 
-
-confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
+confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.predicted.egos)
 confusion.matrix$Graph
-
-Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
-Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
