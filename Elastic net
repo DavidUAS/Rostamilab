@@ -168,31 +168,33 @@ AUC.mortality <- auc(ROC.mortality)
 ######################################### Testing on Leuven data
 Leuvendata <- read.csv("Data/Leuvendata.CSV")
 
+Leuven.test.features <- Leuvendata[, c("motor", "pupil", "age", "CT")]
+Leuven.x.test <- as.matrix(Leuven.test.features)
 
-Leuvendata$eGOS <- as.ordered(Leuvendata$eGOS)
-
-Leuvendata$age <- as.numeric(Leuvendata$age)
-Leuvendata$motor <- as.numeric(Leuvendata$motor)
-Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
-Leuvendata$length <- as.numeric(Leuvendata$CT)
+Leuven.test.lable <- Leuvendata[, c("eGOS")]
+Leuven.y.test <- as.matrix(Leuven.test.lable)
 
 
-Leuven.test.set <- Leuvendata
+Leuven.alpha0.predicted <-
+  predict(alpha0.fit, s=alpha0.fit$lambda.1se, newx=Leuven.x.test)
+
+Leuven.MSE <-mean((Leuven.y.test - Leuven.alpha0.predicted)^2)
+Leuven.MAE <- mean(abs(Leuven.y.test - Leuven.alpha0.predicted))
 
 ############################################################# ROC and AUC for unfavourable / mortality
 library(pROC)
 
-Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.AUC.data <- predict(alpha0.fit, Leuven.x.test)
 Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
 for(i in 1:nrow(Leuven.AUC.data)){
   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
   Leuven.prob.unfavourable[i] <- prob.sum
 }
-Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
+Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
 
-Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-Leuven.was.favourable <- !Leuven.was.favourable
+Leuven.was.favourable <- !was.unfavourable
 
 
 Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
@@ -201,9 +203,8 @@ for(i in 1:nrow(Leuven.AUC.data)){
   Leuven.prob.mortality[i] <- prob.sum
 }
 
-Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data.mortality <- as.numeric(Leuven.y.test)
 Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
-
 
 
 Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
@@ -212,8 +213,10 @@ Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven
 Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
 
 plot(Leuven.ROC.unfavourable)
-auc(Leuven.ROC.unfavourable)
+Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
 
+plot(Leuven.ROC.mortality)
+Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
 
 #confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
 #confusion.matrix$Graph
