@@ -2,6 +2,8 @@ library(keras)
 library(tfdatasets)
 
 #################################################### Importing and normalizing the data
+model <- load_model_tf('saved_model/neuralnetwork')
+
 data <- read.csv("Data/Uppsaladata.CSV")
 
 set.seed(42)
@@ -151,41 +153,55 @@ predicted.egos
 Leuvendata <- read.csv("Data/Leuvendata.CSV")
 
 
-Leuvendata$eGOS <- as.ordered(Leuvendata$eGOS)
+Leuvendata$eGOS <- Leuvendata$eGOS - 1                                 ##### <-------- Python b?rjar r?kna fr?n 0. S? eGOS ska g?r fr?n 0 - 7.
 
-Leuvendata$age <- as.numeric(Leuvendata$age)
-Leuvendata$motor <- as.numeric(Leuvendata$motor)
-Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
-Leuvendata$length <- as.numeric(Leuvendata$CT)
+Leuvendata$motor <- Leuvendata$motor /10
+Leuvendata$pupil <- Leuvendata$pupil / 3
+Leuvendata$age <- Leuvendata$age / 100
+Leuvendata$CT <- Leuvendata$CT /10
 
 
 Leuven.test.set <- Leuvendata
 
+Leuven.test.features <- Leuvendata[, c("motor", "pupil", "age", "CT")]
+Leuven.test.x <- as.matrix(test.features)
+
+Leuven.test.y <- to_categorical(Leuven.test.set$eGOS, 8)
+Leuven.actual.egos <- apply(Leuven.test.y, 1, which.max)
+
+Leuven.probabilities <- predict(model, Leuven.test.x)
+Leuven.predicted.egos <- apply(Leuven.probabilities, 1, which.max)
+
+Leuven.actual.egos <- as.numeric(Leuven.test.set$eGOS)
+
+Leuven.MSE <- mean((Leuven.actual.egos - Leuven.predicted.egos)^2) #MSE for ridge regression
+Leuven.MAE <- mean(abs(Leuven.actual.egos - Leuven.predicted.egos))
+
+
 ############################################################# ROC and AUC for unfavourable / mortality
 library(pROC)
 
-Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.AUC.data <- Leuven.probabilities
 Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
 for(i in 1:nrow(Leuven.AUC.data)){
-  prob.sum <- sum(Leuven.AUC.data[i, 1:4])
-  Leuven.prob.unfavourable[i] <- prob.sum
+  Leuven.prob.sum <- sum(Leuven.AUC.data[i, 1:4])
+  Leuven.prob.unfavourable[i] <- Leuven.prob.sum
 }
-Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
+Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
 
-Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data <- as.numeric(Leuven.actual.egos)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-Leuven.was.favourable <- !Leuven.was.favourable
+Leuven.was.favourable <- !Leuven.was.unfavourable
 
 
 Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
 for(i in 1:nrow(Leuven.AUC.data)){
-  prob.sum <- sum(Leuven.AUC.data[i, 1])
-  Leuven.prob.mortality[i] <- prob.sum
+  Leuven.prob.sum <- sum(Leuven.AUC.data[i, 1])
+  Leuven.prob.mortality[i] <- Leuven.prob.sum
 }
 
-Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data.mortality <- as.numeric(Leuven.actual.egos)
 Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
-
 
 
 Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
@@ -194,7 +210,12 @@ Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven
 Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
 
 plot(Leuven.ROC.unfavourable)
-auc(Leuven.ROC.unfavourable)
+Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
+Leuven.AUC.unfavorable
+
+plot(Leuven.ROC.mortality)
+Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
+Leuven.AUC.mortality
 
 
 #confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
@@ -208,12 +229,11 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
-Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+Leuven.probabilities <- predict(model, Leuven.test.x)
+Leuven.predicted.egos <- as.integer(apply(Leuven.probabilities, 1, which.max))
 
+Leuven.actual.egos.confusion <- as.integer(apply(Leuven.test.y, 1, which.max))
 
-confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
-confusion.matrix$Graph
+Leuven.confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos.confusion, Leuven.predicted.egos)
+Leuven.confusion.matrix$Graph
 
-Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
-Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
