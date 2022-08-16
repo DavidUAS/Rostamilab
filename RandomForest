@@ -100,10 +100,11 @@ ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourab
 
 plot(ROC.unfavourable)
 AUC.unfavorable <- auc(ROC.unfavourable)
+AUC.unfavorable
 
 plot(ROC.mortality)
 AUC.mortality <- auc(ROC.mortality)
-
+AUC.mortality
 
 
 ######################### Classifying error rate
@@ -167,21 +168,40 @@ ggplot(data=mds.data, aes(x=X, y=Y, label=Sample)) +
 ######################################### Testing on Leuven data
 Leuvendata <- read.csv("Data/Leuvendata.CSV")
 
+Leuvendata[Leuvendata$pupil == 1,]$pupil <- "Both reacting"
+Leuvendata[Leuvendata$pupil == 2,]$pupil <- "One reacting"
+Leuvendata[Leuvendata$pupil == 3,]$pupil <- "None reacting"
 
-Leuvendata$eGOS <- as.ordered(Leuvendata$eGOS)
+#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
+#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
+#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
+#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
+#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
+#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
+#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
+#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
 
+Leuvendata$eGOS <- as.factor(Leuvendata$eGOS)
 Leuvendata$age <- as.numeric(Leuvendata$age)
-Leuvendata$motor <- as.numeric(Leuvendata$motor)
-Leuvendata$pupil <- as.numeric(Leuvendata$pupil)
-Leuvendata$length <- as.numeric(Leuvendata$CT)
+Leuvendata$pupil <- as.factor(Leuvendata$pupil)
+Leuvendata$motor <- as.factor(Leuvendata$motor)
+Leuvendata$CT <- as.numeric(Leuvendata$CT)
 
+############################################################ MSE / MAE
 
-Leuven.test.set <- Leuvendata
+Leuven.y.test <- as.numeric(Leuvendata$eGOS)
+Leuven.predicted.egos <- as.numeric(predict(model, Leuvendata))
+
+Leuven.MSE <- mean((Leuven.y.test - Leuven.predicted.egos)^2) #MSE for ridge regression
+Leuven.MAE <- mean(abs(Leuven.y.test - Leuven.predicted.egos))
+
+Leuven.MSE
+Leuven.MAE
 
 ############################################################# ROC and AUC for unfavourable / mortality
 library(pROC)
 
-Leuven.AUC.data <- predict(model, Leuven.test.set, type = "p")
+Leuven.AUC.data <- predict(model, Leuvendata, type = "p")
 Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
 for(i in 1:nrow(Leuven.AUC.data)){
   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
@@ -189,7 +209,7 @@ for(i in 1:nrow(Leuven.AUC.data)){
 }
 Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
 
-Leuven.true.AUC.data <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data <- as.numeric(Leuvendata$eGOS)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
 Leuven.was.favourable <- !Leuven.was.favourable
 
@@ -200,13 +220,14 @@ for(i in 1:nrow(Leuven.AUC.data)){
   Leuven.prob.mortality[i] <- prob.sum
 }
 
-Leuven.true.AUC.data.mortality <- as.numeric(Leuven.test.set$eGOS)
+Leuven.true.AUC.data.mortality <- as.numeric(Leuvendata$eGOS)
 Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
 
 
 
 Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
-
+plot(Leuven.ROC.mortality)
+auc(Leuven.ROC.mortality)
 
 Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
 
@@ -225,8 +246,8 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
-Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+Leuven.original.predicted <- as.integer(predict(model, Leuvendata))
+Leuven.actual.egos <- as.integer(Leuvendata$eGOS)
 
 
 confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
