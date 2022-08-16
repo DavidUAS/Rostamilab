@@ -1,6 +1,6 @@
 library(MASS)
 
-data <- read.csv("Data/Uppsaladata.CSV")
+data <- read.csv("Models/IMPACT variable models/Neuralnetwork/saved_model")
 
 
 data$eGOS <- as.ordered(data$eGOS)
