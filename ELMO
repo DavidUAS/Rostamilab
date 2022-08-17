@@ -110,64 +110,66 @@ alpha0.1.fit <- ordinalNet(x.train, y.train, alpha=0.1, family=c("cumulative"))
 
 alpha0.1.predicted <- (predict(alpha0.1.fit, x.test))
 
-original.egos.0.1 <- alpha0.1.predicted
+predicted.egos.0.1 <- alpha0.1.predicted
 for (i in 1:8){
-  original.egos.0.1[, i] <- original.egos.0.1[, i] * i
+  predicted.egos.0.1[, i] <- predicted.egos.0.1[, i] * i
 }
 
-original.prediction.0.1 <- rep(NA, nrow(original.egos.0.1))
+original.prediction.0.1 <- rep(NA, nrow(predicted.egos.0.1))
 
-for (i in 1:nrow(original.egos.0.1)){
-  original.prediction.0.1[i] <- round(sum(original.egos.0.1[i, ]))
+for (i in 1:nrow(predicted.egos.0.1)){
+  original.prediction.0.1[i] <- round(sum(predicted.egos.0.1[i, ]))
 }
 
 head(original.prediction.0.1)
 MSE.0.1 <- mean((numeric.y.test - original.prediction.0.1)^2)
 MAE.0.1 <- mean(abs(numeric.y.test - original.prediction.0.1))
+MSE.0.1
+MAE.0.1
 
 ###################### Finding optimal alpha value from 0.0 to 1.0 (combination of lasso and ridge regression) OBS Funkar ej 
-
-list.of.fits <- list()
-for (i in 0:10) {
-  fit.name <- paste0("alpha", i/10) #creates names of alpha 0/10=0 to 1/10=1
-  alpha0.fit <- ordinalNet(x.train, y.train, alpha=i/10, family=c("cumulative"))
-  
-}
-
-results <- data.frame()
-for (i in 0:10) {
-  fit.name <- paste0("alpha", i/10)
-  
-  predicted <-
-    predict(list.of.fits[[fit.name]], x=x.test)
-  
-  mse <- mean((numeric.test.y - predicted)^2)
-  
-  temp <- data.frame(alpha=i/10, mse=mse, fit.name=fit.name)
-  results <- rbind(results, temp)
-}
-
-results
+# 
+# list.of.fits <- list()
+# for (i in 0:10) {
+#   fit.name <- paste0("alpha", i/10) #creates names of alpha 0/10=0 to 1/10=1
+#   alpha0.fit <- ordinalNet(x.train, y.train, alpha=i/10, family=c("cumulative"))
+#   
+# }
+# 
+# results <- data.frame()
+# for (i in 0:10) {
+#   fit.name <- paste0("alpha", i/10)
+#   
+#   predicted <-
+#     predict(list.of.fits[[fit.name]], x=x.test)
+#   
+#   mse <- mean((numeric.test.y - predicted)^2)
+#   
+#   temp <- data.frame(alpha=i/10, mse=mse, fit.name=fit.name)
+#   results <- rbind(results, temp)
+# }
+# 
+# results
 
 
 ###################### Example of probability to prediction
 
-weighted.egos <- alpha0.1.predicted
-for (i in 1:8){
-  weighted.egos[, i] <- weighted.egos[, i] * i
-}
-
-weighted.prediction <- rep(NA, nrow(weighted.egos))
-
-for (i in 1:nrow(weighted.egos)){
-  weighted.prediction[i] <- round(sum(weighted.egos[i, ]))
-}
-
-head(weighted.prediction)
-
-numeric.test.y <- as.numeric(y.test)
-MSE <- mean((numeric.test.y - weighted.prediction)^2)
-MAE <- mean(abs(numeric.test.y - weighted.prediction))
+# weighted.egos <- alpha0.1.predicted
+# for (i in 1:8){
+#   weighted.egos[, i] <- weighted.egos[, i] * i
+# }
+# 
+# weighted.prediction <- rep(NA, nrow(weighted.egos))
+# 
+# for (i in 1:nrow(weighted.egos)){
+#   weighted.prediction[i] <- round(sum(weighted.egos[i, ]))
+# }
+# 
+# head(weighted.prediction)
+# 
+# numeric.test.y <- as.numeric(y.test)
+# MSE <- mean((numeric.test.y - weighted.prediction)^2)
+# MAE <- mean(abs(numeric.test.y - weighted.prediction))
 
 
 ##################################### Create confusion matrix
@@ -180,8 +182,8 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-actual.egos <- as.integer(y.test)
-predicted.egos <- as.integer(original.prediction.0.1)
+actual.egos <- as.integer((y.test))
+predicted.egos <- as.integer((original.prediction.0.1))
 
 confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, predicted.egos)
 confusion.matrix$Graph
@@ -225,29 +227,29 @@ plot(ROC.mortality)
 AUC.mortality <- auc(ROC.mortality)
 AUC.mortality
 ######################## Expansion prediction
-library(MASS)
-
-expansion.factor <- 1 / (8 - 1)
-expanded.predictions.1 <- original.prediction.1 + (original.prediction.1 - 8) * expansion.factor
-
-expanded.predictions.1 <- round(expanded.predictions.1)
-expanded.predictions.1[expanded.predictions.1 < 1] <- 1
-expanded.predictions.1[expanded.predictions.1 > 8] <- 8
-
-predicted.egos.1 <- as.integer(expanded.predictions.1)
-
-plot(as.factor(expanded.predictions.1))
-
-original.mean.absolute.error <- sum((abs(original.prediction.1 - y.test))) / length(y.test)
-adjusted.mean.absolute.error <- sum((abs(predicted.egos.1 - y.test))) / length(y.test)
-
-original.mean.squared.error <- sum((original.prediction.1 - y.test)^2) / length(y.test)
-adjusted.mean.squared.error <- sum((predicted.egos.1 - y.test)^2) / length(y.test)
-
-
-MSE.original.1 <- mean((numeric.y.test - original.prediction.1)^2)
-MSE.adjusted.1 <- mean((numeric.y.test - predicted.egos.1)^2)
-MAE <- mean(abs(numeric.y.test - weighted.prediction))
+# library(MASS)
+# 
+# expansion.factor <- 1 / (8 - 1)
+# expanded.predictions.1 <- original.prediction.1 + (original.prediction.1 - 8) * expansion.factor
+# 
+# expanded.predictions.1 <- round(expanded.predictions.1)
+# expanded.predictions.1[expanded.predictions.1 < 1] <- 1
+# expanded.predictions.1[expanded.predictions.1 > 8] <- 8
+# 
+# predicted.egos.1 <- as.integer(round((expanded.predictions.1)))
+# 
+# plot(as.factor(expanded.predictions.1))
+# 
+# original.mean.absolute.error <- sum((abs(original.prediction.1 - y.test))) / length(y.test)
+# adjusted.mean.absolute.error <- sum((abs(predicted.egos.1 - y.test))) / length(y.test)
+# 
+# original.mean.squared.error <- sum((original.prediction.1 - y.test)^2) / length(y.test)
+# adjusted.mean.squared.error <- sum((predicted.egos.1 - y.test)^2) / length(y.test)
+# 
+# 
+# MSE.original.1 <- mean((numeric.y.test - original.prediction.1)^2)
+# MSE.adjusted.1 <- mean((numeric.y.test - predicted.egos.1)^2)
+# MAE <- mean(abs(numeric.y.test - weighted.prediction))
 
 
 
@@ -283,7 +285,7 @@ for(i in 1:nrow(Leuven.AUC.data)){
   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
   Leuven.prob.unfavourable[i] <- prob.sum
 }
-prob.favourable <- 1-Leuven.prob.unfavourable
+Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
 
 Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
@@ -310,7 +312,7 @@ Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
 Leuven.AUC.unfavorable 
 
 plot(Leuven.ROC.mortality)
-Leuven.AUC.mortality <- auc(ROC.mortality)
+Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
 Leuven.AUC.mortality
 
 
@@ -321,22 +323,24 @@ Leuven.AUC.mortality
 #################################### MSE and MAE
 Leuven.alpha0.1.predicted <- predict(alpha0.1.fit, Leuven.x.test)
 
-Leuven.weighted.egos <- Leuven.alpha0.1.predicted
+Leuven.predicted.egos <- Leuven.alpha0.1.predicted
 for (i in 1:8){
-  Leuven.weighted.egos[, i] <- Leuven.weighted.egos[, i] * i
+  Leuven.predicted.egos[, i] <- Leuven.predicted.egos[, i] * i
 }
 
-Leuven.weighted.prediction <- rep(NA, nrow(Leuven.weighted.egos))
+Leuven.prediction <- rep(NA, nrow(Leuven.predicted.egos))
 
-for (i in 1:nrow(Leuven.weighted.egos)){
-  Leuven.weighted.prediction[i] <- round(sum(Leuven.weighted.egos[i, ]))
+for (i in 1:nrow(Leuven.predicted.egos)){
+  Leuven.prediction[i] <- round(sum(Leuven.predicted.egos[i, ]))
 }
 
-head(Leuven.weighted.prediction)
+head(Leuven.prediction)
 
 Leuven.numeric.test.y <- as.numeric(Leuven.y.test)
-Leuven.MSE <- mean((Leuven.numeric.test.y - Leuven.weighted.prediction)^2)
-Leuven.MAE <- mean(abs(Leuven.numeric.test.y - Leuven.weighted.prediction))
+Leuven.MSE <- mean((Leuven.numeric.test.y - Leuven.prediction)^2)
+Leuven.MAE <- mean(abs(Leuven.numeric.test.y - Leuven.prediction))
+Leuven.MSE
+Leuven.MAE
 
 ########################original predicted without expansion factor
 library(ggplot2)
@@ -348,7 +352,111 @@ source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
 Leuven.actual.egos <- as.integer(Leuven.y.test)
-Leuven.predicted.egos <- as.integer(Leuven.weighted.prediction)
+Leuven.predicted.egos <- as.integer(Leuven.prediction)
 
 confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.predicted.egos)
+confusion.matrix$Graph
+
+######################################### Testing on ProTECT data
+ProTECTdata <- read.csv("Data/ProTECTdata.CSV")
+
+
+ProTECTdata$eGOS <- as.ordered(ProTECTdata$eGOS)
+
+ProTECTdata$age <- as.numeric(ProTECTdata$age)
+ProTECTdata$motor <- as.numeric(ProTECTdata$motor)
+ProTECTdata$pupil <- as.numeric(ProTECTdata$pupil)
+ProTECTdata$length <- as.numeric(ProTECTdata$CT)
+
+
+ProTECT.test.data <- ProTECTdata
+
+ProTECT.test.dataframe <- ProTECT.test.data[, c("age", "motor", "pupil", "CT")]
+ProTECT.x.test <- as.matrix(ProTECT.test.dataframe)
+
+#test.lable <- as.numeric(test.data$eGOS)
+ProTECT.y.test <- ProTECT.test.data$eGOS
+ProTECT.numeric.y.test <- as.numeric(ProTECT.y.test) # y.test needs to be numeric for MSE
+
+
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+ProTECT.AUC.data <- predict(alpha0.1.fit, ProTECT.x.test)
+ProTECT.prob.unfavourable <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  prob.sum <- sum(ProTECT.AUC.data[i, 1:4])
+  ProTECT.prob.unfavourable[i] <- prob.sum
+}
+ProTECT.prob.favourable <- 1-ProTECT.prob.unfavourable
+
+ProTECT.true.AUC.data <- as.numeric(ProTECT.y.test)
+ProTECT.was.unfavourable <- ProTECT.true.AUC.data <=4
+ProTECT.was.favourable <- !ProTECT.was.unfavourable
+
+
+ProTECT.prob.mortality <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  prob.sum <- sum(ProTECT.AUC.data[i, 1])
+  ProTECT.prob.mortality[i] <- prob.sum
+}
+
+ProTECT.true.AUC.data.mortality <- as.numeric(ProTECT.y.test)
+ProTECT.was.mortality <- ProTECT.true.AUC.data.mortality ==1
+
+
+ProTECT.ROC.mortality <- roc(predictor = ProTECT.prob.mortality, response = ProTECT.was.mortality)
+
+
+ProTECT.ROC.unfavourable <- roc(predictor = ProTECT.prob.unfavourable, response = ProTECT.was.unfavourable)
+
+plot(ProTECT.ROC.unfavourable)
+ProTECT.AUC.unfavorable <- auc(ProTECT.ROC.unfavourable)
+ProTECT.AUC.unfavorable 
+
+plot(ProTECT.ROC.mortality)
+ProTECT.AUC.mortality <- auc(ProTECT.ROC.mortality)
+ProTECT.AUC.mortality
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+
+
+#################################### MSE and MAE
+ProTECT.alpha0.1.predicted <- predict(alpha0.1.fit, ProTECT.x.test)
+
+ProTECT.predicted.egos <- ProTECT.alpha0.1.predicted
+for (i in 1:8){
+  ProTECT.predicted.egos[, i] <- ProTECT.predicted.egos[, i] * i
+}
+
+ProTECT.egos.prediction <- rep(NA, nrow(ProTECT.predicted.egos))
+
+for (i in 1:nrow(ProTECT.predicted.egos)){
+  ProTECT.egos.prediction[i] <- round(sum(ProTECT.predicted.egos[i, ]))
+}
+
+head(ProTECT.egos.prediction)
+
+ProTECT.numeric.test.y <- as.numeric(ProTECT.y.test)
+ProTECT.MSE <- mean((ProTECT.numeric.test.y - ProTECT.egos.prediction)^2)
+ProTECT.MAE <- mean(abs(ProTECT.numeric.test.y - ProTECT.egos.prediction))
+ProTECT.MSE
+ProTECT.MAE
+
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+ProTECT.actual.egos <- as.integer(ProTECT.y.test)
+ProTECT.predicted.egos <- as.integer(round((ProTECT.egos.prediction)))
+
+confusion.matrix <- ConfusionMatrix_GOSE(ProTECT.actual.egos, ProTECT.predicted.egos)
 confusion.matrix$Graph
