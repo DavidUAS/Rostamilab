@@ -82,41 +82,6 @@ MAE
 MSE
 
 
-# ############################################################# expansion prediction
-# 
-# prediction.set <- cbind(test.set, predict(model, test.set))
-# 
-# plot(prediction.set$`predict(model, test.set)`)
-# 
-# probabilites <- predict(model, test.set, type = "p")
-# 
-# original.predicted <- as.integer(predict(model, test.set))
-# 
-# weighted.egos <- probabilites
-# for (i in 1:8){
-#   weighted.egos[, i] <- weighted.egos[, i] * i
-# }
-# weighted.prediction <- rep(NA, nrow(weighted.egos))
-# for (i in 1:nrow(weighted.egos)){
-#   weighted.prediction[i] <- round(sum(weighted.egos[i, ]))
-# }
-# 
-# expansion.factor <- 1 / (8 - 1)
-# expanded.predictions <- weighted.prediction + (weighted.prediction - 8) * expansion.factor
-# 
-# expanded.predictions <- round(expanded.predictions)
-# expanded.predictions[expanded.predictions < 1] <- 1
-# expanded.predictions[expanded.predictions > 8] <- 8
-# 
-# predicted.egos <- as.integer(round((expanded.predictions)))
-# actual.egos <- as.integer((test.set$eGOS))
-# 
-# plot(as.factor(expanded.predictions))
-# 
-# adjusted.MSE <- sum((predicted.egos - actual.egos)^2) / length(actual.egos)
-# adjusted.MAE <- sum((abs(predicted.egos - actual.egos))) / length(actual.egos)
-
-
 ######################################### Testing on Leuven data
 Leuvendata <- read.csv("Data/Leuvendata.CSV")
 
