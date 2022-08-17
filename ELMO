@@ -127,29 +127,6 @@ MAE.0.1 <- mean(abs(numeric.y.test - original.prediction.0.1))
 MSE.0.1
 MAE.0.1
 
-###################### Finding optimal alpha value from 0.0 to 1.0 (combination of lasso and ridge regression) OBS Funkar ej 
-# 
-# list.of.fits <- list()
-# for (i in 0:10) {
-#   fit.name <- paste0("alpha", i/10) #creates names of alpha 0/10=0 to 1/10=1
-#   alpha0.fit <- ordinalNet(x.train, y.train, alpha=i/10, family=c("cumulative"))
-#   
-# }
-# 
-# results <- data.frame()
-# for (i in 0:10) {
-#   fit.name <- paste0("alpha", i/10)
-#   
-#   predicted <-
-#     predict(list.of.fits[[fit.name]], x=x.test)
-#   
-#   mse <- mean((numeric.test.y - predicted)^2)
-#   
-#   temp <- data.frame(alpha=i/10, mse=mse, fit.name=fit.name)
-#   results <- rbind(results, temp)
-# }
-# 
-# results
 
 
 ###################### Example of probability to prediction
@@ -226,31 +203,6 @@ AUC.unfavorable
 plot(ROC.mortality)
 AUC.mortality <- auc(ROC.mortality)
 AUC.mortality
-######################## Expansion prediction
-# library(MASS)
-# 
-# expansion.factor <- 1 / (8 - 1)
-# expanded.predictions.1 <- original.prediction.1 + (original.prediction.1 - 8) * expansion.factor
-# 
-# expanded.predictions.1 <- round(expanded.predictions.1)
-# expanded.predictions.1[expanded.predictions.1 < 1] <- 1
-# expanded.predictions.1[expanded.predictions.1 > 8] <- 8
-# 
-# predicted.egos.1 <- as.integer(round((expanded.predictions.1)))
-# 
-# plot(as.factor(expanded.predictions.1))
-# 
-# original.mean.absolute.error <- sum((abs(original.prediction.1 - y.test))) / length(y.test)
-# adjusted.mean.absolute.error <- sum((abs(predicted.egos.1 - y.test))) / length(y.test)
-# 
-# original.mean.squared.error <- sum((original.prediction.1 - y.test)^2) / length(y.test)
-# adjusted.mean.squared.error <- sum((predicted.egos.1 - y.test)^2) / length(y.test)
-# 
-# 
-# MSE.original.1 <- mean((numeric.y.test - original.prediction.1)^2)
-# MSE.adjusted.1 <- mean((numeric.y.test - predicted.egos.1)^2)
-# MAE <- mean(abs(numeric.y.test - weighted.prediction))
-
 
 
 ######################################### Testing on Leuven data
