@@ -1,7 +1,7 @@
 library(ggplot2)
 library(cowplot)
 library(randomForest)
-
+as.integer()
 data <- read.csv("Data/Uppsaladata.CSV")
 
 data[data$pupil == 1,]$pupil <- "Both reacting"
@@ -50,6 +50,8 @@ predicted.egos <- as.numeric(predict(model, test.data))
 
 MSE <- mean((y.test - predicted.egos)^2) #MSE for ridge regression
 MAE <- mean(abs(y.test - predicted.egos))
+MSE
+MAE
 
 ##################################### Create confusion matrix
 
@@ -62,7 +64,7 @@ source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
 actual.egos <- as.integer(test.data$eGOS)
-predicted.egos.confusion <- as.integer(predicted.egos)
+predicted.egos.confusion <- as.integer(round((predicted.egos)))
 
 confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, predicted.egos.confusion)
 confusion.matrix$Graph
@@ -211,7 +213,7 @@ Leuven.prob.unfavourable <- 1-Leuven.prob.unfavourable
 
 Leuven.true.AUC.data <- as.numeric(Leuvendata$eGOS)
 Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-Leuven.was.favourable <- !Leuven.was.favourable
+Leuven.was.favourable <- !Leuven.was.unfavourable
 
 
 Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
@@ -253,5 +255,93 @@ Leuven.actual.egos <- as.integer(Leuvendata$eGOS)
 confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
 confusion.matrix$Graph
 
-Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
-Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
+######################################### Testing on ProTECT data
+ProTECTdata <- read.csv("Data/ProTECTdata.CSV")
+
+ProTECTdata[ProTECTdata$pupil == 1,]$pupil <- "Both reacting"
+ProTECTdata[ProTECTdata$pupil == 2,]$pupil <- "One reacting"
+ProTECTdata[ProTECTdata$pupil == 3,]$pupil <- "None reacting"
+
+#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
+#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
+#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
+#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
+#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
+#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
+#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
+#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
+
+ProTECTdata$eGOS <- as.factor(ProTECTdata$eGOS)
+ProTECTdata$age <- as.numeric(ProTECTdata$age)
+ProTECTdata$pupil <- as.factor(ProTECTdata$pupil)
+ProTECTdata$motor <- as.factor(ProTECTdata$motor)
+ProTECTdata$CT <- as.numeric(ProTECTdata$CT)
+
+############################################################ MSE / MAE
+
+ProTECT.y.test <- as.numeric(ProTECTdata$eGOS)
+ProTECT.predicted.egos <- as.numeric(predict(model, ProTECTdata))
+
+ProTECT.MSE <- mean((ProTECT.y.test - ProTECT.predicted.egos)^2) #MSE for ridge regression
+ProTECT.MAE <- mean(abs(ProTECT.y.test - ProTECT.predicted.egos))
+
+ProTECT.MSE
+ProTECT.MAE
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+ProTECT.AUC.data <- predict(model, ProTECTdata, type = "p")
+ProTECT.prob.unfavourable <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1:4])
+  ProTECT.prob.unfavourable[i] <- ProTECTprob.sum
+}
+ProTECT.prob.unfavourable <- 1-ProTECT.prob.unfavourable
+
+ProTECT.true.AUC.data <- as.numeric(ProTECTdata$eGOS)
+ProTECT.was.unfavourable <- ProTECT.true.AUC.data <=4
+ProTECT.was.favourable <- !ProTECT.was.unfavourable
+
+
+ProTECT.prob.mortality <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1])
+  ProTECT.prob.mortality[i] <- ProTECTprob.sum
+}
+
+ProTECT.true.AUC.data.mortality <- as.numeric(ProTECTdata$eGOS)
+ProTECT.was.mortality <- ProTECT.true.AUC.data.mortality ==1
+
+
+
+ProTECT.ROC.mortality <- roc(predictor = ProTECT.prob.mortality, response = ProTECT.was.mortality)
+plot(ProTECT.ROC.mortality)
+auc(ProTECT.ROC.mortality)
+
+ProTECT.ROC.unfavourable <- roc(predictor = ProTECT.prob.unfavourable, response = ProTECT.was.unfavourable)
+plot(ProTECT.ROC.unfavourable)
+auc(ProTECT.ROC.unfavourable)
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+ProTECT.original.predicted <- as.integer(predict(model, ProTECTdata))
+ProTECT.actual.egos <- as.integer(ProTECTdata$eGOS)
+
+
+ProTECT.confusion.matrix <- ConfusionMatrix_GOSE(ProTECT.actual.egos, ProTECT.original.predicted)
+ProTECT.confusion.matrix$Graph
+
+ProTECT.MAE <- sum((abs(ProTECT.original.predicted - ProTECT.actual.egos))) / length(ProTECT.actual.egos)
+ProTECT.MSE <- sum((ProTECT.original.predicted - ProTECT.actual.egos)^2) / length(ProTECT.actual.egos)
+
