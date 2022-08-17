@@ -98,17 +98,18 @@ alpha0.fit <- cv.glmnet(x.train, y.train, type.measure="mse",
 
 alpha0.predicted <-
   predict(alpha0.fit, s=alpha0.fit$lambda.1se, newx=x.test)
-alpha0predicted
+alpha0.predicted
 
 
 #############MSE
 
 MSE0 <- mean((y.test - alpha0.predicted)^2)
+MSE0
 
 ######### MAE
 numeric.test.y <- as.numeric(test.lable)
 MAE0 <- mean(abs(numeric.test.y - alpha0.predicted))
-
+MAE0
 
 ##################################### Create confusion matrix
 
@@ -121,49 +122,10 @@ source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
 actual.egos <- as.integer(y.test)
-predicted.egos <- as.integer(alpha0.predicted)
+predicted.egos <- as.integer(round(alpha0.predicted))
 
 confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, predicted.egos)
 confusion.matrix$Graph
-
-#######################  ROC and AUC for unfavourable / mortality
-library(pROC)
-
-AUC.data <- predict(alpha0.fit, x.test)
-prob.unfavourable <- rep(NA,nrow(AUC.data))
-for(i in 1:nrow(AUC.data)){
-  prob.sum <- sum(AUC.data[i, 1:4])
-  prob.unfavourable[i] <- prob.sum
-}
-prob.favourable <- 1-prob.unfavourable
-
-true.AUC.data <- as.numeric(y.test)
-was.unfavourable <- true.AUC.data <=4
-was.favourable <- !was.unfavourable
-
-
-AUC.data <- predict(alpha0.fit, x.test)
-prob.mortality <- rep(NA,nrow(AUC.data))
-for(i in 1:nrow(AUC.data)){
-  prob.sum <- sum(AUC.data[i, 1])
-  prob.mortality[i] <- prob.sum
-}
-
-true.AUC.data.mortality <- as.numeric(y.test)
-was.mortality <- true.AUC.data.mortality ==1
-
-
-ROC.mortality <- roc(predictor = prob.mortality, response = was.mortality)
-
-
-ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourable)
-
-plot(ROC.unfavourable)
-AUC.unfavorable <- auc(ROC.unfavourable)
-
-plot(ROC.mortality)
-AUC.mortality <- auc(ROC.mortality)
-
 
 ######################################### Testing on Leuven data
 Leuvendata <- read.csv("Data/Leuvendata.CSV")
@@ -178,45 +140,48 @@ Leuven.y.test <- as.matrix(Leuven.test.lable)
 Leuven.alpha0.predicted <-
   predict(alpha0.fit, s=alpha0.fit$lambda.1se, newx=Leuven.x.test)
 
+
 Leuven.MSE <-mean((Leuven.y.test - Leuven.alpha0.predicted)^2)
 Leuven.MAE <- mean(abs(Leuven.y.test - Leuven.alpha0.predicted))
+Leuven.MSE
+Leuven.MAE
 
 ############################################################# ROC and AUC for unfavourable / mortality
-library(pROC)
-
-Leuven.AUC.data <- predict(alpha0.fit, Leuven.x.test)
-Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
-for(i in 1:nrow(Leuven.AUC.data)){
-  prob.sum <- sum(Leuven.AUC.data[i, 1:4])
-  Leuven.prob.unfavourable[i] <- prob.sum
-}
-Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
-
-Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
-Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-Leuven.was.favourable <- !was.unfavourable
-
-
-Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
-for(i in 1:nrow(Leuven.AUC.data)){
-  prob.sum <- sum(Leuven.AUC.data[i, 1])
-  Leuven.prob.mortality[i] <- prob.sum
-}
-
-Leuven.true.AUC.data.mortality <- as.numeric(Leuven.y.test)
-Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
-
-
-Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
-
-
-Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
-
-plot(Leuven.ROC.unfavourable)
-Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
-
-plot(Leuven.ROC.mortality)
-Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
+# library(pROC)
+# 
+# Leuven.AUC.data <- predict(alpha0.fit, Leuven.x.test)
+# Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
+# for(i in 1:nrow(Leuven.AUC.data)){
+#   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
+#   Leuven.prob.unfavourable[i] <- prob.sum
+# }
+# Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
+# 
+# Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
+# Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
+# Leuven.was.favourable <- !was.unfavourable
+# 
+# 
+# Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
+# for(i in 1:nrow(Leuven.AUC.data)){
+#   prob.sum <- sum(Leuven.AUC.data[i, 1])
+#   Leuven.prob.mortality[i] <- prob.sum
+# }
+# 
+# Leuven.true.AUC.data.mortality <- as.numeric(Leuven.y.test)
+# Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
+# 
+# 
+# Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
+# 
+# 
+# Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
+# 
+# plot(Leuven.ROC.unfavourable)
+# Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
+# 
+# plot(Leuven.ROC.mortality)
+# Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
 
 #confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
 #confusion.matrix$Graph
@@ -229,12 +194,80 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-Leuven.original.predicted <- as.integer(predict(model, Leuven.test.set))
-Leuven.actual.egos <- as.integer(Leuven.test.set$eGOS)
+Leuven.actual.egos <- as.integer(Leuven.y.test)
+Leuven.predicted.egos <- as.integer(round(Leuven.alpha0.predicted))
+
+Leuven.confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.predicted.egos)
+Leuven.confusion.matrix$Graph
 
 
-confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos, Leuven.original.predicted)
-confusion.matrix$Graph
+######################################### Testing on ProTECT data
+ProTECTdata <- read.csv("Data/ProTECTdata.CSV")
 
-Leuven.MAE <- sum((abs(Leuven.original.predicted - Leuven.actual.egos))) / length(Leuven.actual.egos)
-Leuven.MSE <- sum((Leuven.original.predicted - Leuven.actual.egos)^2) / length(Leuven.actual.egos)
+ProTECT.test.features <- ProTECTdata[, c("motor", "pupil", "age", "CT")]
+ProTECT.x.test <- as.matrix(ProTECT.test.features)
+
+ProTECT.test.lable <- ProTECTdata[, c("eGOS")]
+ProTECT.y.test <- as.matrix(ProTECT.test.lable)
+
+
+ProTECT.alpha0.predicted <- predict(alpha0.fit, s=alpha0.fit$lambda.1se, newx=ProTECT.x.test)
+
+ProTECT.MSE <-mean((ProTECT.y.test - ProTECT.alpha0.predicted)^2)
+ProTECT.MAE <- mean(abs(ProTECT.y.test - ProTECT.alpha0.predicted))
+ProTECT.MSE
+ProTECT.MAE
+
+############################################################# ROC and AUC for unfavourable / mortality
+# library(pROC)
+# 
+# ProTECT.AUC.data <- predict(alpha0.fit, ProTECT.x.test)
+# ProTECT.prob.unfavourable <- rep(NA,nrow(ProTECT.AUC.data))
+# for(i in 1:nrow(ProTECT.AUC.data)){
+#   ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1:4])
+#   ProTECT.prob.unfavourable[i] <- ProTECTprob.sum
+# }
+# ProTECT.prob.favourable <- 1-ProTECT.prob.unfavourable
+# 
+# ProTECT.true.AUC.data <- as.numeric(ProTECT.y.test)
+# ProTECT.was.unfavourable <- ProTECT.true.AUC.data <=4
+# ProTECT.was.favourable <- !ProTECT.was.unfavourable
+# 
+# 
+# ProTECT.prob.mortality <- rep(NA,nrow(ProTECT.AUC.data))
+# for(i in 1:nrow(ProTECT.AUC.data)){
+#   ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1])
+#   ProTECT.prob.mortality[i] <- ProTECTprob.sum
+# }
+# 
+# ProTECT.true.AUC.data.mortality <- as.numeric(ProTECT.y.test)
+# ProTECT.was.mortality <- ProTECT.true.AUC.data.mortality ==1
+# 
+# 
+# ProTECT.ROC.mortality <- roc(predictor = ProTECT.prob.mortality, response = ProTECT.was.mortality)
+# 
+# 
+# ProTECT.ROC.unfavourable <- roc(predictor = ProTECT.prob.unfavourable, response = ProTECT.was.unfavourable)
+# 
+# plot(ProTECT.ROC.unfavourable)
+# ProTECT.AUC.unfavorable <- auc(ProTECT.ROC.unfavourable)
+# 
+# plot(ProTECT.ROC.mortality)
+# ProTECT.AUC.mortality <- auc(ProTECT.ROC.mortality)
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+ProTECT.actual.egos <- as.integer(ProTECT.y.test)
+ProTECT.predicted.egos <- as.integer(round(ProTECT.alpha0.predicted))
+
+ProTECT.confusion.matrix <- ConfusionMatrix_GOSE(ProTECT.actual.egos, ProTECT.predicted.egos)
+ProTECT.confusion.matrix$Graph
