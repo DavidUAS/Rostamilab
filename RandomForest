@@ -8,14 +8,6 @@ data[data$pupil == 1,]$pupil <- "Both reacting"
 data[data$pupil == 2,]$pupil <- "One reacting"
 data[data$pupil == 3,]$pupil <- "None reacting"
 
-#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
-#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
-#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
-#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
-#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
-#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
-#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
-#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
 
 data$eGOS <- as.factor(data$eGOS)
 data$age <- as.numeric(data$age)
@@ -174,15 +166,6 @@ Leuvendata[Leuvendata$pupil == 1,]$pupil <- "Both reacting"
 Leuvendata[Leuvendata$pupil == 2,]$pupil <- "One reacting"
 Leuvendata[Leuvendata$pupil == 3,]$pupil <- "None reacting"
 
-#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
-#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
-#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
-#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
-#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
-#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
-#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
-#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
-
 Leuvendata$eGOS <- as.factor(Leuvendata$eGOS)
 Leuvendata$age <- as.numeric(Leuvendata$age)
 Leuvendata$pupil <- as.factor(Leuvendata$pupil)
@@ -261,15 +244,6 @@ ProTECTdata <- read.csv("Data/ProTECTdata.CSV")
 ProTECTdata[ProTECTdata$pupil == 1,]$pupil <- "Both reacting"
 ProTECTdata[ProTECTdata$pupil == 2,]$pupil <- "One reacting"
 ProTECTdata[ProTECTdata$pupil == 3,]$pupil <- "None reacting"
-
-#data[data$eGOS == 1,]$eGOS <- "eGOS 1"
-#data[data$eGOS == 2,]$eGOS <- "eGOS 2"
-#data[data$eGOS == 3,]$eGOS <- "eGOS 3"
-#data[data$eGOS == 4,]$eGOS <- "eGOS 4"
-#data[data$eGOS == 5,]$eGOS <- "eGOS 5"
-#data[data$eGOS == 6,]$eGOS <- "eGOS 6"
-#data[data$eGOS == 7,]$eGOS <- "eGOS 7"
-#data[data$eGOS == 8,]$eGOS <- "eGOS 8"
 
 ProTECTdata$eGOS <- as.factor(ProTECTdata$eGOS)
 ProTECTdata$age <- as.numeric(ProTECTdata$age)
