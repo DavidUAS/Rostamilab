@@ -2,8 +2,8 @@ library(keras)
 library(tfdatasets)
 
 #################################################### Importing and normalizing the data
-model <- load_model_tf('saved_model/neuralnetwork')
-
+# model <- load_model_tf('saved_model/neuralnetwork')
+as.integer
 data <- read.csv("Data/Uppsaladata.CSV")
 
 set.seed(42)
@@ -72,18 +72,17 @@ actual.egos <- as.numeric(test.data$eGOS)
 
 MSE <- mean((actual.egos - predicted.egos)^2) #MSE for ridge regression
 MAE <- mean(abs(actual.egos - predicted.egos))
+MSE
+MAE
 
 
-############################################################
-### Make predictions
+#######################  ROC and AUC for unfavourable / mortality
+library(pROC)
 
 probabilities <- predict(model, test.x)
 predicted.egos <- apply(probabilities, 1, which.max)
 
 actual.egos <- apply(test.y, 1, which.max)
-
-#######################  ROC and AUC for unfavourable / mortality
-library(pROC)
 
 AUC.data <- probabilities
 prob.unfavourable <- rep(NA,nrow(AUC.data))
@@ -114,10 +113,10 @@ ROC.mortality <- roc(predictor = prob.mortality, response = was.mortality)
 ROC.unfavourable <- roc(predictor = prob.unfavourable, response = was.unfavourable)
 
 plot(ROC.unfavourable)
-AUC.unfavorable <- auc(ROC.unfavourable)
+auc(ROC.unfavourable)
 
 plot(ROC.mortality)
-AUC.mortality <- auc(ROC.mortality)
+auc(ROC.mortality)
 
 
 ############################################################
@@ -131,7 +130,7 @@ source("ConfusionMatrix_Normalize.R")
 source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
-actual.egos.confusion <- as.integer(apply(test.y, 1, which.max))
+actual.egos.confusion <- as.integer(round((apply(test.y, 1, which.max))))
 
 confusion.matrix <- ConfusionMatrix_GOSE(actual.egos.confusion, predicted.egos)
 confusion.matrix$Graph
@@ -164,7 +163,7 @@ Leuvendata$CT <- Leuvendata$CT /10
 Leuven.test.set <- Leuvendata
 
 Leuven.test.features <- Leuvendata[, c("motor", "pupil", "age", "CT")]
-Leuven.test.x <- as.matrix(test.features)
+Leuven.test.x <- as.matrix(Leuven.test.features)
 
 Leuven.test.y <- to_categorical(Leuven.test.set$eGOS, 8)
 Leuven.actual.egos <- apply(Leuven.test.y, 1, which.max)
@@ -176,10 +175,16 @@ Leuven.actual.egos <- as.numeric(Leuven.test.set$eGOS)
 
 Leuven.MSE <- mean((Leuven.actual.egos - Leuven.predicted.egos)^2) #MSE for ridge regression
 Leuven.MAE <- mean(abs(Leuven.actual.egos - Leuven.predicted.egos))
-
+Leuven.MSE
+Leuven.MAE
 
 ############################################################# ROC and AUC for unfavourable / mortality
 library(pROC)
+
+Leuven.probabilities <- predict(model, Leuven.test.x)
+Leuven.predicted.egos <- apply(Leuven.probabilities, 1, which.max)
+
+Leuven.actual.egos <- apply(Leuven.test.y, 1, which.max)
 
 Leuven.AUC.data <- Leuven.probabilities
 Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
@@ -230,10 +235,103 @@ source("ConfusionMatrix_Plot.R")
 source("ConfusionMatrix_GOSE.R")
 
 Leuven.probabilities <- predict(model, Leuven.test.x)
-Leuven.predicted.egos <- as.integer(apply(Leuven.probabilities, 1, which.max))
+Leuven.predicted.egos <- as.integer(round((apply(Leuven.probabilities, 1, which.max))))
 
-Leuven.actual.egos.confusion <- as.integer(apply(Leuven.test.y, 1, which.max))
+Leuven.actual.egos.confusion <- as.integer(round((apply(Leuven.test.y, 1, which.max))))
 
 Leuven.confusion.matrix <- ConfusionMatrix_GOSE(Leuven.actual.egos.confusion, Leuven.predicted.egos)
 Leuven.confusion.matrix$Graph
 
+######################################### Testing on ProTECT data
+ProTECTdata <- read.csv("Data/ProTECTdata.CSV")
+
+
+ProTECTdata$eGOS <- ProTECTdata$eGOS - 1                                 ##### <-------- Python b?rjar r?kna fr?n 0. S? eGOS ska g?r fr?n 0 - 7.
+
+ProTECTdata$motor <- ProTECTdata$motor /10
+ProTECTdata$pupil <- ProTECTdata$pupil / 3
+ProTECTdata$age <- ProTECTdata$age / 100
+ProTECTdata$CT <- ProTECTdata$CT /10
+
+
+ProTECT.test.set <- ProTECTdata
+
+ProTECT.test.features <- ProTECTdata[, c("motor", "pupil", "age", "CT")]
+ProTECT.test.x <- as.matrix(ProTECT.test.features)
+
+ProTECT.test.y <- to_categorical(ProTECT.test.set$eGOS, 8)
+ProTECT.actual.egos <- apply(ProTECT.test.y, 1, which.max)
+
+ProTECT.probabilities <- predict(model, ProTECT.test.x)
+ProTECT.predicted.egos <- apply(ProTECT.probabilities, 1, which.max)
+
+ProTECT.actual.egos <- as.numeric(ProTECT.test.set$eGOS)
+
+ProTECT.MSE <- mean((ProTECT.actual.egos - ProTECT.predicted.egos)^2) #MSE for ridge regression
+ProTECT.MAE <- mean(abs(ProTECT.actual.egos - ProTECT.predicted.egos))
+ProTECT.MSE
+ProTECT.MAE
+
+############################################################# ROC and AUC for unfavourable / mortality
+library(pROC)
+
+ProTECT.probabilities <- predict(model, ProTECT.test.x)
+ProTECT.predicted.egos <- apply(ProTECT.probabilities, 1, which.max)
+
+ProTECT.actual.egos <- apply(ProTECT.test.y, 1, which.max)
+
+ProTECT.AUC.data <- ProTECT.probabilities
+ProTECT.prob.unfavourable <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  ProTECT.prob.sum <- sum(ProTECT.AUC.data[i, 1:4])
+  ProTECT.prob.unfavourable[i] <- ProTECT.prob.sum
+}
+ProTECT.prob.favourable <- 1-ProTECT.prob.unfavourable
+
+ProTECT.true.AUC.data <- as.numeric(ProTECT.actual.egos)
+ProTECT.was.unfavourable <- ProTECT.true.AUC.data <=4
+ProTECT.was.favourable <- !ProTECT.was.unfavourable
+
+
+ProTECT.prob.mortality <- rep(NA,nrow(ProTECT.AUC.data))
+for(i in 1:nrow(ProTECT.AUC.data)){
+  ProTECT.prob.sum <- sum(ProTECT.AUC.data[i, 1])
+  ProTECT.prob.mortality[i] <- ProTECT.prob.sum
+}
+
+ProTECT.true.AUC.data.mortality <- as.numeric(ProTECT.actual.egos)
+ProTECT.was.mortality <- ProTECT.true.AUC.data.mortality ==1
+
+
+ProTECT.ROC.mortality <- roc(predictor = ProTECT.prob.mortality, response = ProTECT.was.mortality)
+
+
+ProTECT.ROC.unfavourable <- roc(predictor = ProTECT.prob.unfavourable, response = ProTECT.was.unfavourable)
+
+plot(ProTECT.ROC.unfavourable)
+ProTECT.AUC.unfavorable <- auc(ProTECT.ROC.unfavourable)
+ProTECT.AUC.unfavorable
+
+plot(ProTECT.ROC.mortality)
+ProTECT.AUC.mortality <- auc(ProTECT.ROC.mortality)
+ProTECT.AUC.mortality
+
+
+#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
+#confusion.matrix$Graph
+########################original predicted without expansion factor
+library(ggplot2)
+library(reshape)
+
+source("ConfusionMatrix_Count.R")
+source("ConfusionMatrix_Normalize.R")
+source("ConfusionMatrix_Plot.R")
+source("ConfusionMatrix_GOSE.R")
+
+ProTECT.probabilities <- predict(model, ProTECT.test.x)
+ProTECT.predicted.egos <- as.integer(round((apply(ProTECT.probabilities, 1, which.max))))
+
+ProTECT.actual.egos.confusion <- as.integer(round((apply(ProTECT.test.y, 1, which.max))))
+
+ProTECT.confusion.matrix <- ConfusionMatrix_GOSE(ProTECT.actual.egos.confusion, ProTECT.predicted.egos)
+ProTECT.confusion.matrix$Graph
