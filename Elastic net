@@ -146,46 +146,8 @@ Leuven.MAE <- mean(abs(Leuven.y.test - Leuven.alpha0.predicted))
 Leuven.MSE
 Leuven.MAE
 
-############################################################# ROC and AUC for unfavourable / mortality
-# library(pROC)
-# 
-# Leuven.AUC.data <- predict(alpha0.fit, Leuven.x.test)
-# Leuven.prob.unfavourable <- rep(NA,nrow(Leuven.AUC.data))
-# for(i in 1:nrow(Leuven.AUC.data)){
-#   prob.sum <- sum(Leuven.AUC.data[i, 1:4])
-#   Leuven.prob.unfavourable[i] <- prob.sum
-# }
-# Leuven.prob.favourable <- 1-Leuven.prob.unfavourable
-# 
-# Leuven.true.AUC.data <- as.numeric(Leuven.y.test)
-# Leuven.was.unfavourable <- Leuven.true.AUC.data <=4
-# Leuven.was.favourable <- !was.unfavourable
-# 
-# 
-# Leuven.prob.mortality <- rep(NA,nrow(Leuven.AUC.data))
-# for(i in 1:nrow(Leuven.AUC.data)){
-#   prob.sum <- sum(Leuven.AUC.data[i, 1])
-#   Leuven.prob.mortality[i] <- prob.sum
-# }
-# 
-# Leuven.true.AUC.data.mortality <- as.numeric(Leuven.y.test)
-# Leuven.was.mortality <- Leuven.true.AUC.data.mortality ==1
-# 
-# 
-# Leuven.ROC.mortality <- roc(predictor = Leuven.prob.mortality, response = Leuven.was.mortality)
-# 
-# 
-# Leuven.ROC.unfavourable <- roc(predictor = Leuven.prob.unfavourable, response = Leuven.was.unfavourable)
-# 
-# plot(Leuven.ROC.unfavourable)
-# Leuven.AUC.unfavorable <- auc(Leuven.ROC.unfavourable)
-# 
-# plot(Leuven.ROC.mortality)
-# Leuven.AUC.mortality <- auc(Leuven.ROC.mortality)
 
-#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
-#confusion.matrix$Graph
-########################original predicted without expansion factor
+########################o Confusion matrix
 library(ggplot2)
 library(reshape)
 
@@ -218,46 +180,7 @@ ProTECT.MAE <- mean(abs(ProTECT.y.test - ProTECT.alpha0.predicted))
 ProTECT.MSE
 ProTECT.MAE
 
-############################################################# ROC and AUC for unfavourable / mortality
-# library(pROC)
-# 
-# ProTECT.AUC.data <- predict(alpha0.fit, ProTECT.x.test)
-# ProTECT.prob.unfavourable <- rep(NA,nrow(ProTECT.AUC.data))
-# for(i in 1:nrow(ProTECT.AUC.data)){
-#   ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1:4])
-#   ProTECT.prob.unfavourable[i] <- ProTECTprob.sum
-# }
-# ProTECT.prob.favourable <- 1-ProTECT.prob.unfavourable
-# 
-# ProTECT.true.AUC.data <- as.numeric(ProTECT.y.test)
-# ProTECT.was.unfavourable <- ProTECT.true.AUC.data <=4
-# ProTECT.was.favourable <- !ProTECT.was.unfavourable
-# 
-# 
-# ProTECT.prob.mortality <- rep(NA,nrow(ProTECT.AUC.data))
-# for(i in 1:nrow(ProTECT.AUC.data)){
-#   ProTECTprob.sum <- sum(ProTECT.AUC.data[i, 1])
-#   ProTECT.prob.mortality[i] <- ProTECTprob.sum
-# }
-# 
-# ProTECT.true.AUC.data.mortality <- as.numeric(ProTECT.y.test)
-# ProTECT.was.mortality <- ProTECT.true.AUC.data.mortality ==1
-# 
-# 
-# ProTECT.ROC.mortality <- roc(predictor = ProTECT.prob.mortality, response = ProTECT.was.mortality)
-# 
-# 
-# ProTECT.ROC.unfavourable <- roc(predictor = ProTECT.prob.unfavourable, response = ProTECT.was.unfavourable)
-# 
-# plot(ProTECT.ROC.unfavourable)
-# ProTECT.AUC.unfavorable <- auc(ProTECT.ROC.unfavourable)
-# 
-# plot(ProTECT.ROC.mortality)
-# ProTECT.AUC.mortality <- auc(ProTECT.ROC.mortality)
-
-#confusion.matrix <- ConfusionMatrix_GOSE(actual.egos, original.predicted)
-#confusion.matrix$Graph
-########################original predicted without expansion factor
+######################## Confusion matrix
 library(ggplot2)
 library(reshape)
 
