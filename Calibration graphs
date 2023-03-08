@@ -1,0 +1,189 @@
+CreateCalibrationPanel <- function(observed.gose, predicted.probabilities, pdf.file.name = "") {
+  # Plots the calibration curve for each GOSE level.
+  # Each GOSE level is compared to all the other GOSE levels (one vs all).
+  
+  # observed.gose should be an integer vector with values between 1 and 8.
+  # predicted.probabilities should be a numeric matrix with 8 columns,
+  # one row per patient, and values between 0 and 1.
+  
+  # If a value is passed in for pdf.file.name the panel will be written to a pdf.file with the specified name.
+  # Without a value for pdf.file.name the panel will be plotted in RStudio.
+  
+  library(gbm)
+  
+  VerifyArgumentsFor_CreateCalibrationPanel(observed.gose, predicted.probabilities, pdf.file.name)
+  
+  if(pdf.file.name != "") {
+    pdf(pdf.file.name)
+  }
+  
+  original.par <- par(mfrow = c(4, 2), mar = c(4, 5, 1.5, 1))
+  
+  col.for.shadow <- "grey"
+  data.line.color <- "black"
+  
+  xlabel = "Predicted probability"
+  ylabel = "Observed probability"
+  
+  for (i in 1:8) {
+    calibrate.plot.modified(
+      y = observed.gose == i, 
+      p = predicted.probabilities[, i],
+      shade.col = col.for.shadow,
+      line.par = list(col = data.line.color),
+      xlab = xlabel,
+      ylab = ylabel)
+    
+    legend(
+      x = "topleft", 
+      legend = paste("GOSE", i), 
+      bty = "n")
+  }
+  
+  par(original.par)
+  
+  if(pdf.file.name != "") {
+    dev.off()
+  }
+}
+
+calibrate.plot.modified <- function (y, p, distribution = "bernoulli", replace = TRUE, 
+                                     line.par = list(col = "black"), shade.col = "lightyellow", 
+                                     shade.density = NULL, rug.par = list(side = 1), xlab = "Predicted value", 
+                                     ylab = "Observed average", xlim = NULL, ylim = NULL, 
+                                     knots = NULL, df = 6, ...) 
+{
+  # This is the calibrate.plot function from the gbm package.
+  # It is modified to change the line color of the diagonal line.
+  
+  if (!requireNamespace("splines", quietly = TRUE)) {
+    stop("The splines package is needed for this function to work. Please ", 
+         "install it.", call. = FALSE)
+  }
+  data <- data.frame(y = y, p = p)
+  if (is.null(knots) && is.null(df)) {
+    stop("Either knots or df must be specified")
+  }
+  if ((df != round(df)) || (df < 1)) {
+    stop("df must be a positive integer")
+  }
+  if (distribution == "bernoulli") {
+    family1 <- binomial
+  }
+  else if (distribution == "poisson") {
+    family1 <- poisson
+  }
+  else {
+    family1 <- gaussian
+  }
+  gam1 <- glm(y ~ splines::ns(p, df = df, knots = knots), data = data, 
+              family = family1)
+  x <- seq(min(p), max(p), length = 200)
+  yy <- predict(gam1, newdata = data.frame(p = x), se.fit = TRUE, 
+                type = "response")
+  x <- x[!is.na(yy$fit)]
+  yy$se.fit <- yy$se.fit[!is.na(yy$fit)]
+  yy$fit <- yy$fit[!is.na(yy$fit)]
+  if (!is.na(shade.col)) {
+    se.lower <- yy$fit - 2 * yy$se.fit
+    se.upper <- yy$fit + 2 * yy$se.fit
+    if (distribution == "bernoulli") {
+      se.lower[se.lower < 0] <- 0
+      se.upper[se.upper > 1] <- 1
+    }
+    if (distribution == "poisson") {
+      se.lower[se.lower < 0] <- 0
+    }
+    if (is.null(xlim)) {
+      xlim <- range(se.lower, se.upper, x)
+    }
+    if (is.null(ylim)) {
+      ylim <- range(se.lower, se.upper, x)
+    }
+  }
+  else {
+    if (is.null(xlim)) {
+      xlim <- range(yy$fit, x)
+    }
+    if (is.null(ylim)) {
+      ylim <- range(yy$fit, x)
+    }
+  }
+  if (replace) {
+    plot(0, 0, type = "n", xlab = xlab, ylab = ylab, 
+         xlim = xlim, ylim = ylim, ...)
+  }
+  if (!is.na(shade.col)) {
+    polygon(c(x, rev(x), x[1L]), c(se.lower, rev(se.upper), 
+                                   se.lower[1L]), col = shade.col, border = NA, density = shade.density)
+  }
+  lines(x, yy$fit, col = line.par$col)
+  quantile.rug(p, side = rug.par$side)
+  abline(0, 1, col = "black", lty = "dashed")
+}
+
+VerifyArgumentsFor_CreateCalibrationPanel <- function(observed.gose, predicted.probabilities, pdf.file.name) {
+  # Helper function that checks if the input to CreateEvaluationGraphs are valid.
+  
+  base.error.message <- "Invalid argument to CreateCalibrationPanel:"
+  
+  if (is.null(observed.gose)){
+    stop(paste(base.error.message, "observed.gose was NULL"))
+  }
+  
+  if ( ! is.vector(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be a vector"))
+  }
+  
+  if (length(observed.gose) < 1) {
+    stop(paste(base.error.message, "observed.gose has to of at least length 1"))
+  }
+  
+  if ( ! is.integer(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be of type integer"))
+  }
+  
+  if (min(observed.gose) < 1 | max(observed.gose) > 8) {
+    stop(paste(base.error.message, "values in observed.gose has to be between 1 and 8"))
+  }
+  
+  if (is.null(predicted.probabilities)) {
+    return() # NULL is used to indicate the predicted probabilities can't be calculated.
+  }
+  
+  if ( ! is.matrix(predicted.probabilities)) {
+    stop(paste(base.error.message, "predicted.probabilities has to be a matrix"))
+  }
+  
+  if (ncol(predicted.probabilities) != 8) {
+    stop(paste(base.error.message, "predicted.probabilities has to have 8 columns"))
+  }
+  
+  if (nrow(predicted.probabilities) < 1) {
+    stop(paste(base.error.message, "predicted.probabilities has to have at least one row"))
+  }
+  
+  if ( ! is.numeric(predicted.probabilities)) {
+    stop(paste(base.error.message, "predicted.probabilities has to be of type numeric"))
+  }
+  
+  if (min(predicted.probabilities) < 0 | max(predicted.probabilities) > 1) {
+    stop(paste(base.error.message, "predicted.probabilities has to between 0 and 1"))
+  }
+  
+  if (is.null(pdf.file.name)){
+    stop(paste(base.error.message, "pdf.file.name was NULL"))
+  }
+  
+  if ( ! is.vector(pdf.file.name)) {
+    stop(paste(base.error.message, "pdf.file.name has to be a vector"))
+  }
+  
+  if (length(pdf.file.name) != 1) {
+    stop(paste(base.error.message, "pdf.file.name has to be of length 1"))
+  }
+  
+  if ( ! is.character(pdf.file.name)) {
+    stop(paste(base.error.message, "pdf.file.name has to be of type character"))
+  }
+}
