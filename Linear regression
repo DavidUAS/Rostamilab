@@ -1,0 +1,13 @@
+data <- readRDS("Uppsala.data.RDS")
+
+# Fit the linear regression model
+set.seed(0)
+model <- lm(formula = eGOS ~ age + motor + pupil + CT, data = data$TrainingSet)
+
+# Make predictions using the fitted model
+predictions <- predict(model, newdata = data$TestSet)
+
+# Print a summary of the model
+summary(model)
+
+saveRDS(model, file="Linear regression.RDS")
