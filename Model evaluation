@@ -1,0 +1,324 @@
+#################### Choosing a model (except neural networks(NN))
+
+model <- readRDS("RF.RDS")
+
+# NN is instead:
+library(keras)
+library(tfdatasets)
+model <- load_model_hdf5("NN.h5")
+
+################### Choosing dataset
+Uppsala.data <- readRDS("Uppsala.data.RDS")
+Leuven.data <- readRDS("Leuven.data.RDS")
+ProTECT.data <- readRDS("ProTECT.data.RDS")
+Uppsala.observed.gose <- as.integer(as.vector(Uppsala.data$TestSet$eGOS))
+Leuven.observed.gose <- as.integer(as.vector(Leuven.data$eGOS))
+ProTECT.observed.gose <- as.integer(as.vector(ProTECT.data$eGOS))
+
+
+################### Data processing depending on the model:
+# Linear regression:
+# Uppsala.predicted.gose <- predict(model, Uppsala.data$TestSet)
+# Uppsala.predicted.gose <- as.integer(pmax(Uppsala.predicted.gose, 1))
+# Leuven.predicted.gose <- predict(model, Leuven.data)
+# Leuven.predicted.gose <- as.integer(pmax(Leuven.predicted.gose, 1))
+# ProTECT.predicted.gose <- predict(model, ProTECT.data)
+# ProTECT.predicted.gose <- as.integer(pmax(ProTECT.predicted.gose, 1))
+
+# POLR:
+# Uppsala.predicted.gose <- as.integer(predict(model, Uppsala.data$TestSet))
+# Uppsala.predicted.probabilities <- as.matrix(predict(model, Uppsala.data$TestSet, type = "p"))
+# Leuven.predicted.gose <- as.integer(predict(model, Leuven.data))
+# Leuven.predicted.probabilities <- as.matrix(predict(model, Leuven.data, type = "p"))
+# ProTECT.predicted.gose <- as.integer(predict(model, ProTECT.data))
+# ProTECT.predicted.probabilities <- as.matrix(predict(model, ProTECT.data, type = "p"))
+
+library(MASS)
+
+# Elastic net:
+# Uppsala.predicted.gose <- as.integer(predict(model, s=model$lambda.1se, newx=as.matrix(Uppsala.data$TestSet[, c("motor", "pupil", "age", "CT")])))
+# Leuven.predicted.gose <- as.integer(predict(model, s=model$lambda.1se, newx=as.matrix(Leuven.data[, c("motor", "pupil", "age", "CT")])))
+# ProTECT.predicted.gose <- as.integer(predict(model, s=model$lambda.1se, newx=as.matrix(ProTECT.data[, c("motor", "pupil", "age", "CT")])))
+library(glmnet)
+library(ggplot2)
+
+# Elmo: 
+# new.x <- as.matrix(Uppsala.data$TestSet[, c("age", "motor", "pupil", "CT")])
+# new.x.L <- as.matrix(Leuven.data[, c("age", "motor", "pupil", "CT")])
+# new.x.P <- as.matrix(ProTECT.data[, c("age", "motor", "pupil", "CT")])
+# Uppsala.predicted.probabilities <- as.matrix(predict(model, new.x))
+# colnames(Uppsala.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+# Uppsala.predicted.gose <- as.integer(apply((Uppsala.predicted.probabilities), 1, which.max))
+# 
+# Leuven.predicted.probabilities <- as.matrix(predict(model, new.x.L))
+# colnames(Leuven.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+# Leuven.predicted.gose <- as.integer(apply((Leuven.predicted.probabilities), 1, which.max))
+# 
+# ProTECT.predicted.probabilities <- as.matrix(predict(model, new.x.P))
+# colnames(ProTECT.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+# ProTECT.predicted.gose <- as.integer(apply((ProTECT.predicted.probabilities), 1, which.max))
+library(ordinalNet)
+library(glmnet)
+library(ggplot2)
+
+# Random forest:
+library(ggplot2)
+library(cowplot)
+library(randomForest)
+#Uppsala.data$TestSet[Uppsala.data$TestSet$pupil == 1,]$pupil <- "Both reacting"
+#Uppsala.data$TestSet[Uppsala.data$TestSet$pupil == 2,]$pupil <- "One reacting"
+#Uppsala.data$TestSet[Uppsala.data$TestSet$pupil == 3,]$pupil <- "None reacting"
+#Uppsala.data$TestSet$eGOS <- as.factor(Uppsala.data$TestSet$eGOS)
+#Uppsala.data$TestSet$age <- as.numeric(Uppsala.data$TestSet$age)
+#Uppsala.data$TestSet$pupil <- as.factor(Uppsala.data$TestSet$pupil)
+#Uppsala.data$TestSet$motor <- as.factor(Uppsala.data$TestSet$motor)
+#Uppsala.data$TestSet$CT <- as.numeric(Uppsala.data$TestSet$CT)
+#Uppsala.predicted.gose <- as.integer(as.vector(predict(model, Uppsala.data$TestSet)))
+#Uppsala.predicted.probabilities <- predict(model, Uppsala.data$TestSet, type="prob")
+
+#Leuven.data[Leuven.data$pupil == 1,]$pupil <- "Both reacting"
+#Leuven.data[Leuven.data$pupil == 2,]$pupil <- "One reacting"
+#Leuven.data[Leuven.data$pupil == 3,]$pupil <- "None reacting"
+#Leuven.data$eGOS <- as.factor(Leuven.data$eGOS)
+#Leuven.data$age <- as.numeric(Leuven.data$age)
+#Leuven.data$pupil <- as.factor(Leuven.data$pupil)
+#Leuven.data$motor <- as.factor(Leuven.data$motor)
+#Leuven.data$CT <- as.numeric(Leuven.data$CT)
+#Leuven.predicted.gose <- as.integer(as.vector(predict(model, Leuven.data)))
+#Leuven.predicted.probabilities <- predict(model, Leuven.data, type="prob")
+
+#ProTECT.data[ProTECT.data$pupil == 1,]$pupil <- "Both reacting"
+#ProTECT.data[ProTECT.data$pupil == 2,]$pupil <- "One reacting"
+#ProTECT.data[ProTECT.data$pupil == 3,]$pupil <- "None reacting"
+#ProTECT.data$eGOS <- as.factor(ProTECT.data$eGOS)
+#ProTECT.data$age <- as.numeric(ProTECT.data$age)
+#ProTECT.data$pupil <- as.factor(ProTECT.data$pupil)
+#ProTECT.data$motor <- as.factor(ProTECT.data$motor)
+#ProTECT.data$CT <- as.numeric(ProTECT.data$CT)
+#ProTECT.predicted.gose <- as.integer(as.vector(predict(model, ProTECT.data)))
+#ProTECT.predicted.probabilities <- predict(model, ProTECT.data, type="prob")
+
+
+# NN:
+# Uppsala.data$TestSet$motor <- Uppsala.data$TestSet$motor /10
+# Uppsala.data$TestSet$pupil <- Uppsala.data$TestSet$pupil / 3
+# Uppsala.data$TestSet$age <- Uppsala.data$TestSet$age / 100
+# Uppsala.data$TestSet$CT <- Uppsala.data$TestSet$CT /10
+# test.x <- as.matrix(Uppsala.data$TestSet[, c("motor", "pupil", "age", "CT")])
+# Uppsala.predicted.gose <- apply(predict(model, test.x), 1, which.max)
+# Uppsala.predicted.probabilities <- as.matrix(predict(model, test.x))
+# colnames(Uppsala.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+# 
+# Leuven.data$motor <- Leuven.data$motor /10
+# Leuven.data$pupil <- Leuven.data$pupil / 3
+# Leuven.data$age <- Leuven.data$age / 100
+# Leuven.data$CT <- Leuven.data$CT /10
+# test.x.L <- as.matrix(Leuven.data[, c("motor", "pupil", "age", "CT")])
+# Leuven.predicted.gose <- apply(predict(model, test.x.L), 1, which.max)
+# Leuven.predicted.probabilities <- as.matrix(predict(model, test.x.L))
+# colnames(Leuven.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+# 
+# ProTECT.data$motor <- ProTECT.data$motor /10
+# ProTECT.data$pupil <- ProTECT.data$pupil / 3
+# ProTECT.data$age <- ProTECT.data$age / 100
+# ProTECT.data$CT <- ProTECT.data$CT /10
+# test.x.P <- as.matrix(ProTECT.data[, c("motor", "pupil", "age", "CT")])
+# ProTECT.predicted.gose <- apply(predict(model, test.x.P), 1, which.max)
+# ProTECT.predicted.probabilities <- as.matrix(predict(model, test.x.P))
+# colnames(ProTECT.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
+
+
+################ Evaluating predictions
+source("EvaluatePredictions.R")
+
+Uppsala.evaluation <- EvaluatePredictions(predicted.gose = Uppsala.predicted.gose, observed.gose = Uppsala.observed.gose, predicted.probabilities = NULL)
+HP.U <- Uppsala.evaluation$EvaluationTable
+row.names(HP.U)[1] <- "HP-U"
+
+Leuven.evaluation <- EvaluatePredictions(predicted.gose = Leuven.predicted.gose, observed.gose = Leuven.observed.gose, predicted.probabilities = NULL)
+HP.L <- Leuven.evaluation$EvaluationTable
+row.names(HP.L)[1] <- "HP-L"
+
+ProTECT.evaluation <- EvaluatePredictions(predicted.gose = ProTECT.predicted.gose, observed.gose = ProTECT.observed.gose, predicted.probabilities = NULL)
+HP.P <- ProTECT.evaluation$EvaluationTable
+row.names(HP.P)[1] <- "HP-P"
+
+Evaluation.table.basic <- rbind(HP.U, HP.L, HP.P)
+Evaluation.table.basic
+write.table(Evaluation.table.basic, file="Results/RF-basic-evaluation.csv", sep = ",", row.names = TRUE)
+
+############### Creating evaluation graphs
+source("CreateEvaluationGraphs.R")
+library(ggplot2)
+
+Uppsala.graphs <- CreateEvaluationGraphs(predicted.gose = Uppsala.predicted.gose,
+                                         observed.gose = Uppsala.observed.gose,
+                                         plot.graphs = F)
+Uppsala.graphs
+ggsave("results/RF-U-confusion matrix.png", Uppsala.graphs$ConfusionMatrix)
+ggsave("results/RF-U-CategoryProportion.png", Uppsala.graphs$CategoryProportionGraph)
+ggsave("results/RF-U-ErrorDistribution.png", Uppsala.graphs$ErrorDistributionGraph)
+
+Leuven.graphs <- CreateEvaluationGraphs(predicted.gose = Leuven.predicted.gose,
+                                        observed.gose = Leuven.observed.gose,
+                                        plot.graphs = F)
+Leuven.graphs
+ggsave("results/RF-L-confusion matrix.png", Leuven.graphs$ConfusionMatrix)
+ggsave("results/RF-L-CategoryProportion.png", Leuven.graphs$CategoryProportionGraph)
+ggsave("results/RF-L-ErrorDistribution.png", Leuven.graphs$ErrorDistributionGraph)
+
+ProTECT.graphs <- CreateEvaluationGraphs(predicted.gose = ProTECT.predicted.gose,
+                                         observed.gose = ProTECT.observed.gose,
+                                         plot.graphs = F)
+ProTECT.graphs
+ggsave("results/RF-P-confusion matrix.png", ProTECT.graphs$ConfusionMatrix)
+ggsave("results/RF-P-CategoryProportion.png", ProTECT.graphs$CategoryProportionGraph)
+ggsave("results/RF-P-ErrorDistribution.png", ProTECT.graphs$ErrorDistributionGraph)
+
+############## Creating Calibration plots
+source("CreateCalibrationPanel.R")
+CreateCalibrationPanelU <- CreateCalibrationPanel(observed.gose = Uppsala.observed.gose, predicted.probabilities = Uppsala.predicted.probabilities, pdf.file.name = "results/RF-U-calibrationplot.pdf")
+CreateCalibrationPanelL <- CreateCalibrationPanel(observed.gose = Leuven.observed.gose, predicted.probabilities = Leuven.predicted.probabilities, pdf.file.name = "results/RF-L-calibrationplot.pdf")
+CreateCalibrationPanelP <- CreateCalibrationPanel(observed.gose = ProTECT.observed.gose, predicted.probabilities = ProTECT.predicted.probabilities, pdf.file.name = "results/RF-P-calibrationplot.pdf")
+
+########################## AUROC
+source("AUROC.R")
+
+AUROCUppsala <- AUROC(Uppsala.predicted.probabilities, Uppsala.observed.gose)
+AUROCLeuven <- AUROC(Leuven.predicted.probabilities, Leuven.observed.gose)
+AUROCProTECT <- AUROC(ProTECT.predicted.probabilities, ProTECT.observed.gose)
+AUROCtable <- cbind(AUROCUppsala, AUROCLeuven, AUROCProTECT)
+write.table(AUROCtable, file="results/RF-AUROC.csv", sep = ",", row.names = TRUE)
+
+
+####################### Evaluation of category selection
+source("SelectCategory.R")
+PredictedHighestProb <- SelectCategory_HighestProbability(probabilities = Uppsala.predicted.probabilities)
+EvaluatedHP <-  EvaluatePredictions(predicted.gose = PredictedHighestProb, observed.gose = Uppsala.observed.gose, predicted.probabilities = Uppsala.predicted.probabilities)
+HP.U <- EvaluatedHP$EvaluationTable
+row.names(HP.U)[1] <- "HP-U"
+#write.table(EvaluatedHP$EvaluationTable, file="results/RF-HP-Evaluated.csv", sep = ",", row.names = FALSE)
+HP.graphs <- CreateEvaluationGraphs(predicted.gose = PredictedHighestProb,
+                                         observed.gose = Uppsala.observed.gose,
+                                         plot.graphs = F)
+HP.graphs
+ggsave("results/RF-U-HP-confusion matrix.png", HP.graphs$ConfusionMatrix)
+ggsave("results/RF-U-HP-CategoryProportion.png", HP.graphs$CategoryProportionGraph)
+ggsave("results/RF-U-HP-ErrorDistribution.png", HP.graphs$ErrorDistributionGraph)
+
+
+PredictedWeightedAvg <- SelectCategory_WeightedAverage(probabilities = Uppsala.predicted.probabilities)
+EvaluatedWA <-  EvaluatePredictions(predicted.gose = PredictedWeightedAvg, observed.gose = Uppsala.observed.gose, predicted.probabilities = Uppsala.predicted.probabilities)
+WA.U <- EvaluatedWA$EvaluationTable
+row.names(WA.U)[1] <- "WA-U"
+#write.table(EvaluatedWA$EvaluationTable, file="results/RF-WA-Evaluated.csv", sep = ",", row.names = FALSE)
+WA.graphs <- CreateEvaluationGraphs(predicted.gose = PredictedWeightedAvg,
+                                    observed.gose = Uppsala.observed.gose,
+                                    plot.graphs = F)
+WA.graphs
+ggsave("results/RF-U-wA-confusion matrix.png", WA.graphs$ConfusionMatrix)
+ggsave("results/RF-U-wA-CategoryProportion.png", WA.graphs$CategoryProportionGraph)
+ggsave("results/RF-U-wA-ErrorDistribution.png", WA.graphs$ErrorDistributionGraph)
+
+PredictedLoeSS <- SelectCategory_Loess(probabilities = Uppsala.predicted.probabilities, span.setting = 1)
+EvaluatedLoeSS <-  EvaluatePredictions(predicted.gose = PredictedLoeSS, observed.gose = Uppsala.observed.gose, predicted.probabilities = Uppsala.predicted.probabilities)
+LoeSS.U <- EvaluatedLoeSS$EvaluationTable
+row.names(LoeSS.U)[1] <- "LoeSS-U"
+#write.table(EvaluatedLoeSS$EvaluationTable, file="results/LoeSS-RF-Evaluated.csv", sep = ",", row.names = FALSE)
+LoeSS.graphs <- CreateEvaluationGraphs(predicted.gose = PredictedLoeSS,
+                                       observed.gose = Uppsala.observed.gose,
+                                       plot.graphs = F)
+LoeSS.graphs
+ggsave("results/RF-U-LoeSS-confusion matrix.png", LoeSS.graphs$ConfusionMatrix)
+ggsave("results/RF-U-LoeSS-CategoryProportion.png", LoeSS.graphs$CategoryProportionGraph)
+ggsave("results/RF-U-LoeSS-ErrorDistribution.png", LoeSS.graphs$ErrorDistributionGraph)
+
+##################### External validation of WA and LoeSS
+##################### Leuven
+
+
+Leuven.PredictedHighestProb <- SelectCategory_HighestProbability(probabilities = Leuven.predicted.probabilities)
+Leuven.EvaluatedHP <-  EvaluatePredictions(predicted.gose = Leuven.PredictedHighestProb, observed.gose = Leuven.observed.gose, predicted.probabilities = Leuven.predicted.probabilities)
+HP.L <- Leuven.EvaluatedHP$EvaluationTable
+row.names(HP.L)[1] <- "HP-L"
+# write.table(Leuven.EvaluatedHP$EvaluationTable, file="results/RF-L-HP-Evaluated.csv", sep = ",", row.names = FALSE)
+Leuven.HP.graphs <- CreateEvaluationGraphs(predicted.gose = Leuven.PredictedHighestProb,
+                                    observed.gose = Leuven.observed.gose,
+                                    plot.graphs = F)
+Leuven.HP.graphs
+ggsave("results/RF-L-HP-confusion matrix.png", Leuven.HP.graphs$ConfusionMatrix)
+ggsave("results/RF-L-HP-CategoryProportion.png", Leuven.HP.graphs$CategoryProportionGraph)
+ggsave("results/RF-L-HP-ErrorDistribution.png", Leuven.HP.graphs$ErrorDistributionGraph)
+
+Leuven.PredictedWeightedAvg <- SelectCategory_WeightedAverage(probabilities = Leuven.predicted.probabilities)
+Leuven.EvaluatedWA <-  EvaluatePredictions(predicted.gose = Leuven.PredictedWeightedAvg, observed.gose = Leuven.observed.gose, predicted.probabilities = Leuven.predicted.probabilities)
+WA.L <- Leuven.EvaluatedWA$EvaluationTable
+row.names(WA.L)[1] <- "WA-L"
+# write.table(Leuven.EvaluatedWA$EvaluationTable, file="results/RF-L-WA-Evaluated.csv", sep = ",", row.names = FALSE)
+Leuven.WA.graphs <- CreateEvaluationGraphs(predicted.gose = Leuven.PredictedWeightedAvg,
+                                    observed.gose = Leuven.observed.gose,
+                                    plot.graphs = F)
+Leuven.WA.graphs
+ggsave("results/RF-L-WA-confusion matrix.png", Leuven.WA.graphs$ConfusionMatrix)
+ggsave("results/RF-L-WA-CategoryProportion.png", Leuven.WA.graphs$CategoryProportionGraph)
+ggsave("results/RF-L-WA-ErrorDistribution.png", Leuven.WA.graphs$ErrorDistributionGraph)
+
+Leuven.PredictedLoeSS <- SelectCategory_Loess(probabilities = Leuven.predicted.probabilities, span.setting = 1)
+Leuven.EvaluatedLoeSS <-  EvaluatePredictions(predicted.gose = Leuven.PredictedLoeSS, observed.gose = Leuven.observed.gose, predicted.probabilities = Leuven.predicted.probabilities)
+LoeSS.L <- Leuven.EvaluatedLoeSS$EvaluationTable
+row.names(LoeSS.L)[1] <- "LoeSS-L"
+# write.table(Leuven.EvaluatedLoeSS$EvaluationTable, file="results/RF-L-LoeSS-EvaluatedLoeSS.csv", sep = ",", row.names = FALSE)
+Leuven.LoeSS.graphs <- CreateEvaluationGraphs(predicted.gose = Leuven.PredictedLoeSS,
+                                       observed.gose = Leuven.observed.gose,
+                                       plot.graphs = F)
+Leuven.LoeSS.graphs
+ggsave("results/RF-L-LoeSS-confusion matrix.png", Leuven.LoeSS.graphs$ConfusionMatrix)
+ggsave("results/RF-L-LoeSS-CategoryProportion.png", Leuven.LoeSS.graphs$CategoryProportionGraph)
+ggsave("results/RF-L-LoeSS-ErrorDistribution.png", Leuven.LoeSS.graphs$ErrorDistributionGraph)
+
+################### Atlanta / ProTECT
+
+ProTECT.PredictedHighestProb <- SelectCategory_HighestProbability(probabilities = ProTECT.predicted.probabilities)
+ProTECT.EvaluatedHP <-  EvaluatePredictions(predicted.gose = ProTECT.PredictedHighestProb, observed.gose = ProTECT.observed.gose, predicted.probabilities = ProTECT.predicted.probabilities)
+HP.P <- ProTECT.EvaluatedHP$EvaluationTable
+row.names(HP.P)[1] <- "HP-P"
+# write.table(ProTECT.EvaluatedHP$EvaluationTable, file="results/RF-P-HP-Evaluated.csv", sep = ",", row.names = FALSE)
+ProTECT.HP.graphs <- CreateEvaluationGraphs(predicted.gose = ProTECT.PredictedHighestProb,
+                                    observed.gose = ProTECT.observed.gose,
+                                    plot.graphs = F)
+ProTECT.HP.graphs
+ggsave("results/RF-P-HP-confusion matrix.png", ProTECT.HP.graphs$ConfusionMatrix)
+ggsave("results/RF-P-HP-CategoryProportion.png", ProTECT.HP.graphs$CategoryProportionGraph)
+ggsave("results/RF-P-HP-ErrorDistribution.png", ProTECT.HP.graphs$ErrorDistributionGraph)
+
+ProTECT.PredictedWeightedAvg <- SelectCategory_WeightedAverage(probabilities = ProTECT.predicted.probabilities)
+ProTECT.EvaluatedWA <-  EvaluatePredictions(predicted.gose = ProTECT.PredictedWeightedAvg, observed.gose = ProTECT.observed.gose, predicted.probabilities = ProTECT.predicted.probabilities)
+WA.P <- ProTECT.EvaluatedWA$EvaluationTable
+row.names(WA.P)[1] <- "WA-P"
+# write.table(ProTECT.EvaluatedWA$EvaluationTable, file="results/RF-P-WA-Evaluated.csv", sep = ",", row.names = FALSE)
+ProTECT.WA.graphs <- CreateEvaluationGraphs(predicted.gose = ProTECT.PredictedWeightedAvg,
+                                    observed.gose = ProTECT.observed.gose,
+                                    plot.graphs = F)
+ProTECT.WA.graphs
+ggsave("results/RF-P-WA-confusion matrix.png", ProTECT.WA.graphs$ConfusionMatrix)
+ggsave("results/RF-P-WA-CategoryProportion.png", ProTECT.WA.graphs$CategoryProportionGraph)
+ggsave("results/RF-P-WA-ErrorDistribution.png", ProTECT.WA.graphs$ErrorDistributionGraph)
+
+ProTECT.PredictedLoeSS <- SelectCategory_Loess(probabilities = ProTECT.predicted.probabilities, span.setting = 1)
+ProTECT.EvaluatedLoeSS <-  EvaluatePredictions(predicted.gose = ProTECT.PredictedLoeSS, observed.gose = ProTECT.observed.gose, predicted.probabilities = ProTECT.predicted.probabilities)
+LoeSS.P <- ProTECT.EvaluatedLoeSS$EvaluationTable
+row.names(LoeSS.P)[1] <- "LoeSS-P"
+# write.table(ProTECT.EvaluatedLoeSS$EvaluationTable, file="results/RF-P-LoeSS-EvaluatedLoeSS.csv", sep = ",", row.names = FALSE)
+ProTECT.LoeSS.graphs <- CreateEvaluationGraphs(predicted.gose = ProTECT.PredictedLoeSS,
+                                       observed.gose = ProTECT.observed.gose,
+                                       plot.graphs = F)
+ProTECT.LoeSS.graphs
+ggsave("results/RF-P-LoeSS-confusion matrix.png", ProTECT.LoeSS.graphs$ConfusionMatrix)
+ggsave("results/RF-P-LoeSS-CategoryProportion.png", ProTECT.LoeSS.graphs$CategoryProportionGraph)
+ggsave("results/RF-P-LoeSS-ErrorDistribution.png", ProTECT.LoeSS.graphs$ErrorDistributionGraph)
+
+############# Combined table
+Evaluation.table <- rbind(HP.U, WA.U, LoeSS.U, HP.L, WA.L, LoeSS.L, HP.P, WA.P, LoeSS.P)
+Evaluation.table
+write.table(Evaluation.table, file="Results/RF-evaluation.csv", sep = ",", row.names = TRUE)
+
