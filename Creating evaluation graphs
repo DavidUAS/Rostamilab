@@ -1,0 +1,217 @@
+CreateEvaluationGraphs <- function(predicted.gose, observed.gose, plot.graphs = F) {
+  # Creates several graphs that can be used to evaluate a prediction model.
+  
+  # predicted.gose and observed.gose should be integer vectors with values between 1 and 8.
+  
+  # The return value is a list with the graphs stored as ggplot objects.
+  
+  library(ggplot2)
+  
+  VerifyArgumentsFor_CreateEvaluationGraphs(predicted.gose, observed.gose)
+  
+  evaluation.summary <- EvaluatePredictions(predicted.gose, observed.gose)
+  
+  confusion.matrix <- CreateConfusionMatrix(predicted.gose, observed.gose)
+  
+  category.proportion.graph <- CreateCategoryProportionGraph(
+    evaluation.summary$ObservedCategoryProportions,
+    evaluation.summary$PredictedCategoryProportions)
+  
+  error.distribution.graph <- CreateErrorDistributionGraph(predicted.gose, observed.gose)
+  
+  graphs <- list(
+    ConfusionMatrix = confusion.matrix,
+    CategoryProportionGraph = category.proportion.graph,
+    ErrorDistributionGraph = error.distribution.graph
+  )
+  
+  if (plot.graphs) {
+    print(confusion.matrix)
+    print(category.proportion.graph)
+    print(error.distribution.graph)
+  }
+  
+  return(graphs)
+}
+
+CreateConfusionMatrix <- function(predicted.gose, observed.gose) {
+  count.matrix <- ConfusionMatrix_CountMatrix(observed.gose, predicted.gose)
+  count.table <- ConfusionMatrix_CountTable(count.matrix)
+  cm.plot <- ConfusionMatrix_Plot(count.table)
+  
+  return(cm.plot)
+}
+
+ConfusionMatrix_CountMatrix <- function(observed.gose, predicted.gose) {
+  # Createas a matrix with the counts of each combination of
+  # observed gose and predicted gose.
+
+  # Observations along rows (y-axis).
+  # Predictions along columns (x-axis).
+  
+  cm <- matrix(NA, nrow = 8, ncol = 8)
+  
+  for(row.index in 1:8) {
+    for(col.index in 1:8) {
+      num.matches <- sum((observed.gose == row.index) & (predicted.gose == col.index))
+
+      cm[row.index, col.index] <- num.matches
+    }
+  }
+  
+  return(cm)
+}
+
+ConfusionMatrix_CountTable <- function(count.matrix) {
+  # Reformats the counts from a matrix to a table.
+  
+  rows <- rep(1:8, 8)
+  columns <- c()
+  for (i in 1:8) {
+    columns <- c(columns, rep(i, 8))
+  }
+  
+  CountTable <- data.frame(
+    Observed = rows,
+    Predicted = columns,
+    Count = rep(0, 64))
+  
+  for (i in 1:64) {
+    current.count <- count.matrix[CountTable$Observed[i], CountTable$Predicted[i]]
+    CountTable$Count[i] <- current.count
+  }
+  
+  CountTable$Observed <- factor(CountTable$Observed, levels = 1:8, ordered = TRUE)
+  CountTable$Predicted <- factor(CountTable$Predicted, levels = 1:8, ordered = TRUE)
+  
+  return(CountTable)
+}
+
+ConfusionMatrix_Plot <- function(count.table) {
+  the.labels <- as.character(1:8)
+
+  max.count <- max(count.table$Count)
+  max.scale <- 10 * ceiling(max.count / 10)
+  legend.label.positions <- seq(0, max.scale, by = 10)
+  
+  display.labels <- count.table$Count
+  
+  cm.plot <- ggplot(count.table, aes(x = Predicted, y = Observed, fill = Count)) +
+    geom_tile(color = "white") +
+    ylab("Observed GOS-E") +
+    xlab("Predicted GOS-E") +
+    guides(fill = guide_colourbar(ticks = F)) +
+    scale_fill_continuous(limits = c(0, max.scale), legend.label.positions) +
+    geom_text(aes(label = display.labels), colour = "white", size = 10) +
+    theme(panel.background = element_rect(fill = "white"),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 20),
+          axis.text = element_text(size = 18),
+          legend.title = element_blank(),
+          legend.key.height = unit(2.125, "cm"),
+          legend.text = element_text(size = 18))
+  
+  return(cm.plot)
+}
+
+CreateCategoryProportionGraph <- function(observed.proportions, predicted.proportions) {
+  graph.data <- data.frame(
+    GOSE = c(1:8, 1:8),
+    type = c(rep("Observed proportion", 8), rep("Predicted proportion", 8)),
+    Proportion = c(observed.proportions, predicted.proportions))
+  
+  plot <- ggplot(data = graph.data, aes(fill = type, y = Proportion, x = GOSE)) + 
+    geom_bar(
+      position = "dodge",
+      stat = "identity",
+      color = "black") +
+
+    scale_x_discrete(limit = factor(1:8)) +
+    scale_fill_manual(values=c("steelblue", "red")) +
+    theme_classic() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    ylab("Proportion of all patients") +
+    theme(
+      legend.position = "top",
+      legend.title = element_blank(),
+      legend.text = element_text(size = 20),
+      axis.title = element_text(size = 20),
+      axis.text = element_text(size = 18))
+  
+  return(plot)
+}
+
+CreateErrorDistributionGraph <- function(predicted.gose, observed.gose) {
+  diffs <- observed.gose - predicted.gose
+  
+  diff.counts <- c()
+  for (error.value in -7:7) {
+    count <- length(diffs[diffs == error.value])
+    diff.counts <- c(diff.counts, count)
+  }
+  
+  diff.table <- data.frame(Error = factor(-7:7), Count = diff.counts)
+  
+  plot <- ggplot(data = diff.table, aes(x = Error, y = Count)) + 
+    geom_bar(
+      stat = "identity",
+      color = "black") +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    scale_x_discrete(limit = factor(-7:7)) +
+    xlab("Observed GOS-E - Predicted GOS-E") +
+    theme_classic() +
+    theme(
+      axis.title = element_text(size = 20),
+      legend.text = element_text(size = 18),
+      axis.text = element_text(size = 18)) +
+    geom_text(aes(label = diff.counts), size = 6, vjust = -0.5)
+  
+  plot
+}
+
+VerifyArgumentsFor_CreateEvaluationGraphs <- function(predicted.gose, observed.gose) {
+  # Helper function that checks if the input to CreateEvaluationGraphs are valid.
+  
+  base.error.message <- "Invalid argument to CreateEvaluationGraphs:"
+  
+  if (is.null(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose was NULL"))
+  }
+  
+  if ( ! is.vector(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose has to be a vector"))
+  }
+  
+  if (length(predicted.gose) < 1) {
+    stop(paste(base.error.message, "predicted.gose has to of at least length 1"))
+  }
+  
+  if ( ! is.integer(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose has to be of type integer"))
+  }
+  
+  if (min(predicted.gose) < 1 | max(predicted.gose) > 8) {
+    stop(paste(base.error.message, "values in predicted.gose has to be between 1 and 8"))
+  }
+  
+  if (is.null(observed.gose)){
+    stop(paste(base.error.message, "observed.gose was NULL"))
+  }
+  
+  if ( ! is.vector(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be a vector"))
+  }
+  
+  if (length(observed.gose) < 1) {
+    stop(paste(base.error.message, "observed.gose has to of at least length 1"))
+  }
+  
+  if ( ! is.integer(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be of type integer"))
+  }
+  
+  if (min(observed.gose) < 1 | max(observed.gose) > 8) {
+    stop(paste(base.error.message, "values in observed.gose has to be between 1 and 8"))
+  }
+}
