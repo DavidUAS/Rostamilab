@@ -1,0 +1,304 @@
+EvaluatePredictions <- function(predicted.gose, observed.gose, predicted.probabilities = NULL) {
+  # Calcultes several metrics that can be used to evaluate a prediction model.
+  
+  # predicted.gose and observed.gose should be integer vectors with values between 1 and 8.
+  # predicted.probabilities should be a numeric matrix with 8 columns,
+  # one row per patient, and values between 0 and 1.
+  
+  # Set predicted.probabilities to NULL if the model doesn't calculate probabilities.
+  
+  # The return value is a list with all the metrics as well as the Evaluation table.
+  
+  # The Evaluation table is a data.frame with a single row consisting of all the
+  # metrics that consists of a single value. If several models are evaluated these
+  # tables can be combined using the rbind() function.
+  
+  VerifyArgumentsFor_EvaluatePredictions(predicted.gose, observed.gose, predicted.probabilities)
+  
+  EvaluationTable <- data.frame(
+    MeanAbsoluteError = CalculateMeanAbsoluteError(predicted.gose, observed.gose),
+    MeanSquaredError = CalculateMeanSquaredError(predicted.gose, observed.gose),
+    Accuracy = CalculateAccuracy(predicted.gose, observed.gose),
+    AccuracyWithinOne = CalculateAccuracyWithinOne(predicted.gose, observed.gose),
+    AccuracyWithinTwo = CalculateAccuracyWithinTwo(predicted.gose, observed.gose),
+    MeanDiscrepancy = CalculateMeanDiscrepancy(predicted.gose, observed.gose),
+    StandardDeviationDiscrepancy = CalculateStandardDeviationDiscrepancy(predicted.gose, observed.gose),
+    MeanMaximumProbability = CalculateMeanMaximumProbability(predicted.probabilities),
+    TotalCategoryProportionDiscrepancy = CalculateTotalCategoryProportionDiscrepancy(predicted.gose, observed.gose),
+    MaximumCategoryProportionDiscrepancy = CalculateMaximumCategoryProportionDiscrepancy(predicted.gose, observed.gose)
+  )
+  
+  summary <- list(
+    MeanAbsoluteError = CalculateMeanAbsoluteError(predicted.gose, observed.gose),
+    MeanSquaredError = CalculateMeanSquaredError(predicted.gose, observed.gose),
+    Accuracy = CalculateAccuracy(predicted.gose, observed.gose),
+    AccuracyWithinOne = CalculateAccuracyWithinOne(predicted.gose, observed.gose),
+    AccuracyWithinTwo = CalculateAccuracyWithinTwo(predicted.gose, observed.gose),
+    MeanDiscrepancy = CalculateMeanDiscrepancy(predicted.gose, observed.gose),
+    StandardDeviationDiscrepancy = CalculateStandardDeviationDiscrepancy(predicted.gose, observed.gose),
+    MeanMaximumProbability = CalculateMeanMaximumProbability(predicted.probabilities),
+    PredictedCategoryProportions = CalculatePredictedCategoryProportions(predicted.gose),
+    ObservedCategoryProportions = CalculateObservedCategoryProportions(observed.gose),
+    TotalCategoryProportionDiscrepancy = CalculateTotalCategoryProportionDiscrepancy(predicted.gose, observed.gose),
+    MaximumCategoryProportionDiscrepancy = CalculateMaximumCategoryProportionDiscrepancy(predicted.gose, observed.gose),
+    EvaluationTable = EvaluationTable
+  )
+  
+  return(summary)
+}
+
+CalculateMeanAbsoluteError <- function(predicted.gose, observed.gose) {
+  # The Mean Absolute Error (MAE) is a standard evaluation metric.
+  
+  error <- predicted.gose - observed.gose
+  mae <- mean(abs(error))
+  
+  return(mae)
+}
+
+CalculateMeanSquaredError <- function(predicted.gose, observed.gose) {
+  # The Mean Squared Error (MSE) is a standard evaluation metric.
+  
+  error <- predicted.gose - observed.gose
+  mse <- mean(error^2)
+  
+  return(mse)
+}
+
+CalculateAccuracy <- function(predicted.gose, observed.gose) {
+  # Calculates Accuracy (A), which is the proportion of patients
+  #  where the prediction exactly matched the observed outcome.
+  
+  correct.prediction <- predicted.gose == observed.gose
+  proportion.correct <- sum(correct.prediction) / length(correct.prediction)
+  
+  return(proportion.correct)
+}
+
+CalculateAccuracyWithinOne <- function(predicted.gose, observed.gose) {
+  # Calculates Accuracy Within One (AW1), which is the proportion of
+  # patients where the prediction is within +/- 1 of the observed outcome.
+  
+  correct.prediction <- abs(predicted.gose - observed.gose) <= 1
+  proportion.correct <- sum(correct.prediction) / length(correct.prediction)
+  
+  return(proportion.correct)
+}
+
+CalculateAccuracyWithinTwo <- function(predicted.gose, observed.gose) {
+  # Calculates Accuracy Within Two (AW2), which is the proportion of
+  # patients where the prediction is within +/- 2 of the observed outcome.
+  
+  correct.prediction <- abs(predicted.gose - observed.gose) <= 2
+  proportion.correct <- sum(correct.prediction) / length(correct.prediction)
+  
+  return(proportion.correct)
+}
+
+CalculateMeanDiscrepancy <- function(predicted.gose, observed.gose) {
+  # The difference between the mean of the predictions and
+  # the mean of the observations, here termed Mean Discrepancy (MD).
+  
+  # Negative values indicate that the model is too pessimistic,
+  # and positive values that it is too optimistic.
+  
+  # Values close to zero indicate that the model is balanced in this regard.
+  
+  mean.prediction <- mean(predicted.gose)
+  mean.observed <- mean(observed.gose)
+  
+  mean.discrepancy <- mean.prediction - mean.observed
+  
+  return(mean.discrepancy)
+}
+
+CalculateStandardDeviationDiscrepancy <- function(predicted.gose, observed.gose) {
+  # The difference between the standard deviation of the predictions and
+  # the standard deviation of the observations, here termed 
+  # Standard Deviation Discrepancy (SDD).
+  
+  # Negative values indicate that the model tends to make predictions
+  # closer to the center of the scale compared to the observations.
+  
+  # Values close to zero indicate that the model is balanced in this regard.
+  
+  std.prediction <- sd(predicted.gose)
+  std.observed <- sd(observed.gose)
+  
+  std.discrepancy <- std.prediction - std.observed
+  
+  return(std.discrepancy)
+}
+
+CalculateMeanMaximumProbability <- function(predicted.probabilities) {
+  # Each patient has a probability for each GOSE category.
+  # The maximum probability is the higest of these probabilities.
+  
+  # The Mean Maximum Probability (MMP) is the mean of this for all patients.
+  
+  # The lowest possible value for an eight grade scale is 12.5 % (1/8).
+  # The highest possible value is 100 %.
+  
+  # A low value indicates that the model is insecure about it's predictions.
+  # A high value indicates that the model is confident, but not
+  # neccesarily correct.
+  
+  if (is.null(predicted.probabilities)) {
+    return(NA) # Some models don't calculate probabilities.
+  }
+    
+  max.probabilty <- rep(NA, nrow(predicted.probabilities))
+  for (i in 1:nrow(predicted.probabilities)) {
+    max.probabilty[i] <- max(predicted.probabilities[i, ])
+  }
+  
+  mean.max.probability <- mean(max.probabilty)
+  
+  return(mean.max.probability)
+}
+
+CalculatePredictedCategoryProportions <- function(predicted.gose) {
+  # The predicted category proportion is the fraction of patients that
+  # are predicted to have a given GOSE level.
+  
+  # The Predicted Category Proportions (PCP) will therefore 
+  # consist of 8 values for each model.
+  
+  predicted.cateogory.proportions <- rep(NA, 8)
+  
+  for (i in 1:8) {
+    proportion <- sum(predicted.gose == i) / length(predicted.gose)
+    predicted.cateogory.proportions[i] <- proportion
+  }
+  
+  return(predicted.cateogory.proportions)
+}
+
+CalculateObservedCategoryProportions <- function(observed.gose) {
+  # The observed category proportion is the fraction of patients that
+  # are observed to have a given GOSE level.
+  
+  # The Observed Category Proportions (OCP) will therefore 
+  # consist of 8 values for each model.
+  
+  observed.category.proportions <- rep(NA, 8)
+  
+  for (i in 1:8) {
+    proportion <- sum(observed.gose == i) / length(observed.gose)
+    observed.category.proportions[i] <- proportion
+  }
+  
+  return(observed.category.proportions)
+}
+
+CalculateTotalCategoryProportionDiscrepancy <- function(predicted.gose, observed.gose) {
+  # The category proportion discrepancy is the absolute difference
+  # between the predicted category proportion and the observed category
+  # proportion for a given GOSE level.
+  
+  # The Total Category Proportion Discrepancy (TCPD) is the sum of
+  # the category proportion discrepancy for all GOSE levels.
+  
+  # A value close to 0 indicate that the model, overall, doesn't
+  # favor or disfavor certain categories.
+  
+  # The maximum value is 2.
+  
+  pco <- CalculatePredictedCategoryProportions(predicted.gose)
+  ocp <- CalculateObservedCategoryProportions(observed.gose)
+  
+  tcpd <- sum(abs(pco - ocp))
+  
+  return(tcpd)
+}
+
+CalculateMaximumCategoryProportionDiscrepancy <- function(predicted.gose, observed.gose) {
+  # The category proportion discrepancy is the absolute difference
+  # between the predicted category proportion and the observed category
+  # proportion for a given GOSE level.
+  
+  # The Maximum Category Proportion Discrepancy (MCPD) is the highest
+  # category proportion discrepancy for all GOSE levels.
+  
+  # A value close to 0 indicate that the model doesn't
+  # favor or disfavor any of the categories.
+  
+  # The maximum value is 1.
+  
+  pco <- CalculatePredictedCategoryProportions(predicted.gose)
+  ocp <- CalculateObservedCategoryProportions(observed.gose)
+  
+  mcpd <- max(abs(pco - ocp))
+  
+  return(mcpd)
+}
+
+VerifyArgumentsFor_EvaluatePredictions <- function(predicted.gose, observed.gose, predicted.probabilities) {
+  # Helper function that checks if the input to EvaluatePredictions are valid.
+  
+  base.error.message <- "Invalid argument to EvaluatePredictions:"
+  
+  if (is.null(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose was NULL"))
+  }
+  
+  if ( ! is.vector(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose has to be a vector"))
+  }
+  
+  if (length(predicted.gose) < 1) {
+    stop(paste(base.error.message, "predicted.gose has to of at least length 1"))
+  }
+  
+  if ( ! is.integer(predicted.gose)) {
+    stop(paste(base.error.message, "predicted.gose has to be of type integer"))
+  }
+  
+  if (min(predicted.gose) < 1 | max(predicted.gose) > 8) {
+    stop(paste(base.error.message, "values in predicted.gose has to be between 1 and 8"))
+  }
+  
+  if (is.null(observed.gose)){
+    stop(paste(base.error.message, "observed.gose was NULL"))
+  }
+  
+  if ( ! is.vector(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be a vector"))
+  }
+  
+  if (length(observed.gose) < 1) {
+    stop(paste(base.error.message, "observed.gose has to of at least length 1"))
+  }
+  
+  if ( ! is.integer(observed.gose)) {
+    stop(paste(base.error.message, "observed.gose has to be of type integer"))
+  }
+  
+  if (min(observed.gose) < 1 | max(observed.gose) > 8) {
+    stop(paste(base.error.message, "values in observed.gose has to be between 1 and 8"))
+  }
+  
+  if (is.null(predicted.probabilities)) {
+    return() # NULL is used to indicate the predicted probabilities can't be calculated.
+  }
+  
+  if ( ! is.matrix(predicted.probabilities)) {
+    stop(paste(base.error.message, "predicted.probabilities has to be a matrix"))
+  }
+  
+  if (ncol(predicted.probabilities) != 8) {
+    stop(paste(base.error.message, "predicted.probabilities has to have 8 columns"))
+  }
+  
+  if (nrow(predicted.probabilities) < 1) {
+    stop(paste(base.error.message, "predicted.probabilities has to have at least one row"))
+  }
+  
+  if ( ! is.numeric(predicted.probabilities)) {
+    stop(paste(base.error.message, "predicted.probabilities has to be of type numeric"))
+  }
+  
+  if (min(predicted.probabilities) < 0 | max(predicted.probabilities) > 1) {
+    stop(paste(base.error.message, "predicted.probabilities has to between 0 and 1"))
+  }
+}
