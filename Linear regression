@@ -1,4 +1,10 @@
 data <- readRDS("Uppsala.data.RDS")
+data$TrainingSet$pupil <- as.factor(data$TrainingSet$pupil)
+data$TrainingSet$motor <- as.factor(data$TrainingSet$motor)
+data$TrainingSet$CT <- as.factor(data$TrainingSet$CT)
+data$TestSet$pupil <- as.factor(data$TestSet$pupil)
+data$TestSet$motor <- as.factor(data$TestSet$motor)
+data$TestSet$CT <- as.factor(data$TestSet$CT)
 
 # Fit the linear regression model
 set.seed(0)
