@@ -23,7 +23,7 @@ train.data$motor <- train.data$motor -1
 train.data$pupil <- train.data$pupil -1
 train.data$CT <- train.data$CT -1
 process <- preProcess(as.data.frame(train.data$age), method=c("range"))
-train.data$age <- predict(process, as.data.frame(train.data$age))
+train.data$age <- predict(process, as.data.frame(train.data$age)) #### <----- Normalizes age to values between 0-1.
 
 test.data$eGOS <- test.data$eGOS - 1                                 ##### <-------- Python begins calculations from 0. So eGOS should be from 0 - 7.
 
@@ -60,7 +60,7 @@ test.y <- to_categorical(test.data$eGOS, 8) # <--- antalet labels
 
 model <- keras_model_sequential() 
 model %>% 
-  layer_dense(units = 6, activation = 'relu', input_shape = c(4)) %>%  # <------- Input shape ?r antalet kolumner i train.x (antal features).
+  layer_dense(units = 6, activation = 'relu', input_shape = c(16)) %>%  # <------- Input shape ?r antalet kolumner i train.x (antal features).
   layer_dropout(rate = 0.5) %>% 
   layer_dense(units = 6, activation = 'relu') %>%
   layer_dropout(rate = 0.5) %>% 
@@ -68,14 +68,14 @@ model %>%
 
 summary(model)
 
-model %>% compile(loss = 'mean_absolute_error', optimizer = optimizer_rmsprop(), metrics = c('mae'))
+model %>% compile(loss = 'mean_absolute_error', optimizer = optimizer_rmsprop(learning_rate=0.2), metrics = c('mae'))
 
 ################################# Training the network
 
 
 history <- model %>% fit(
   train.x, train.y, 
-  epochs = 30, batch_size = 30, 
+  epochs = 30, batch_size = 32, 
   validation_split = 0.2
 )
 plot(history)
