@@ -6,16 +6,16 @@ data <- readRDS("Uppsala.data.RDS")
 data$TrainingSet$eGOS <- as.ordered(data$TrainingSet$eGOS)
 
 data$TrainingSet$age <- as.numeric(data$TrainingSet$age)
-data$TrainingSet$motor <- as.numeric(data$TrainingSet$motor)
-data$TrainingSet$pupil <- as.numeric(data$TrainingSet$pupil)
-data$TrainingSet$CT <- as.numeric(data$TrainingSet$CT)
+data$TrainingSet$pupil <- as.factor(data$TrainingSet$pupil)
+data$TrainingSet$motor <- as.factor(data$TrainingSet$motor)
+data$TrainingSet$CT <- as.factor(data$TrainingSet$CT)
 
 data$TestSet$eGOS <- as.ordered(data$TestSet$eGOS)
 
 data$TestSet$age <- as.numeric(data$TestSet$age)
-data$TestSet$motor <- as.numeric(data$TestSet$motor)
-data$TestSet$pupil <- as.numeric(data$TestSet$pupil)
-data$TestSet$CT <- as.numeric(data$TestSet$CT)
+data$TestSet$pupil <- as.factor(data$TestSet$pupil)
+data$TestSet$motor <- as.factor(data$TestSet$motor)
+data$TestSet$CT <- as.factor(data$TestSet$CT)
 
 str(data)
 
