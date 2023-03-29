@@ -86,6 +86,11 @@ head(oob.values)
 which.min(oob.values)
 
 
+####################### Variable importance
+varImpPlot(model, sort=T, n.var= 4)
+model$importance
+
+
 ###################### MDS-plot
 distance.matrix <- dist(1-model$proximity)
 
