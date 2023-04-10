@@ -7,21 +7,15 @@ data <- readRDS("Uppsala.data.RDS")
 train.data <- data$TrainingSet
 test.data <- data$TestSet
 
-train.data[train.data$pupil == 1,]$pupil <- "Both reacting"
-train.data[train.data$pupil == 2,]$pupil <- "One reacting"
-train.data[train.data$pupil == 3,]$pupil <- "None reacting"
-
-test.data[test.data$pupil == 1,]$pupil <- "Both reacting"
-test.data[test.data$pupil == 2,]$pupil <- "One reacting"
-test.data[test.data$pupil == 3,]$pupil <- "None reacting"
-
 train.data$eGOS <- as.factor(train.data$eGOS)
+
 train.data$age <- as.numeric(train.data$age)
 train.data$pupil <- as.factor(train.data$pupil)
 train.data$motor <- as.factor(train.data$motor)
 train.data$CT <- as.factor(train.data$CT)
 
 test.data$eGOS <- as.factor(test.data$eGOS)
+
 test.data$age <- as.numeric(test.data$age)
 test.data$pupil <- as.factor(test.data$pupil)
 test.data$motor <- as.factor(test.data$motor)
@@ -37,7 +31,7 @@ set.seed(0)
 model <- randomForest(eGOS ~., data=train.data, ntree=500, mtry=1, proximity=TRUE)
 # ntree = number of trees in model, default=500
 # mtry = number of variables at each split, default=sqrt of input variables
-
+saveRDS(model, file="RF.RDS")
 model
 
 ######################################### MSE / MAE
@@ -84,29 +78,3 @@ for(i in 1:10) {
 }
 head(oob.values)
 which.min(oob.values)
-
-
-####################### Variable importance
-varImpPlot(model, sort=T, n.var= 4)
-model$importance
-
-
-###################### MDS-plot
-distance.matrix <- dist(1-model$proximity)
-
-mds.scale <- cmdscale(distance.matrix, eig = TRUE, x.ret = FALSE)
-
-mds.var.per <- round(mds.scale$eig/sum(mds.scale$eig)*100, 1)
-
-mds.values <- mds.scale$points
-mds.data <- data.frame(Sample=rownames(mds.values),
-                       X=mds.values[,1],
-                       Y=mds.values[,2],
-                       Status=train.data$eGOS)
-
-ggplot(data=mds.data, aes(x=X, y=Y, label=Sample)) +
-  geom_text(aes(color=Status)) +
-  theme_bw() +
-  xlab(paste("MDS1 -", mds.var.per[1], "%", sep="")) +
-  ylab(paste("MDS2 -", mds.var.per[2], "%", sep="")) +
-  ggtitle("MDS plot using (1 - Random Forest Proximities)")
