@@ -1,21 +1,27 @@
 ############### Specifying dataset
 data <- readRDS("Uppsala.data.RDS")
 
+train.data <- data$TrainingSet
+test.data <- data$TestSet
+
 ################ Formatting data
 
-data$TrainingSet$eGOS <- as.ordered(data$TrainingSet$eGOS)
+train.data$eGOS <- as.factor(train.data$eGOS)
+train.data$age <- as.numeric(train.data$age)
+train.data$pupil <- as.factor(train.data$pupil)
+train.data$motor <- as.factor(train.data$motor)
+train.data$CT <- as.factor(train.data$CT)
 
-data$TrainingSet$age <- as.numeric(data$TrainingSet$age)
-data$TrainingSet$pupil <- as.factor(data$TrainingSet$pupil)
-data$TrainingSet$motor <- as.factor(data$TrainingSet$motor)
-data$TrainingSet$CT <- as.factor(data$TrainingSet$CT)
+train.data$eGOS <- as.factor(data$TrainingSet$eGOS)
 
-data$TestSet$eGOS <- as.ordered(data$TestSet$eGOS)
 
-data$TestSet$age <- as.numeric(data$TestSet$age)
-data$TestSet$pupil <- as.factor(data$TestSet$pupil)
-data$TestSet$motor <- as.factor(data$TestSet$motor)
-data$TestSet$CT <- as.factor(data$TestSet$CT)
+test.data$eGOS <- as.factor(test.data$eGOS)
+test.data$age <- as.numeric(test.data$age)
+test.data$pupil <- as.factor(test.data$pupil)
+test.data$motor <- as.factor(test.data$motor)
+test.data$CT <- as.factor(test.data$CT)
+
+test.data$eGOS <- as.factor(data$TestSet$eGOS)
 
 str(data)
 
@@ -24,7 +30,7 @@ library(MASS)
 
 set.seed(0)
 
-model <- polr(eGOS ~  age + motor + pupil + CT, data = data$TrainingSet, Hess = TRUE)
+model <- polr(eGOS ~  age + motor + pupil + CT, data = train.data, Hess = TRUE)
 
 summary(model)
 
