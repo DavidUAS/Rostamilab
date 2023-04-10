@@ -1,13 +1,8 @@
 library(keras)
 library(tfdatasets)
-library(caret)
 
 #################################################### Importing and normalizing the data
-
-#If the distribution of the quantity is normal, then it should be standardized, otherwise the data should be normalized. 
-# This applies if the range of quantity values is large (10s, 100s, etc.) or small (0.01, 0.0001).
-
-
+# model <- 
 
 data <- readRDS("Uppsala.data.RDS")
 
@@ -19,25 +14,24 @@ set.seed(0)
 
 train.data$eGOS <- train.data$eGOS - 1                                 ##### <-------- Python begins calculations from 0. So eGOS should be from 0 - 7.
 
-train.data$motor <- train.data$motor -1
-train.data$pupil <- train.data$pupil -1
-train.data$CT <- train.data$CT -1
-process <- preProcess(as.data.frame(train.data$age), method=c("range"))
-train.data$age <- predict(process, as.data.frame(train.data$age)) #### <----- Normalizes age to values between 0-1.
+train.data$motor <- train.data$motor - 1
+train.data$pupil <- train.data$pupil - 1
+train.data$CT <- train.data$CT - 1
+train.data$age <- scale(train.data$age)
+
 
 test.data$eGOS <- test.data$eGOS - 1                                 ##### <-------- Python begins calculations from 0. So eGOS should be from 0 - 7.
 
 test.data$motor <- test.data$motor - 1
 test.data$pupil <- test.data$pupil - 1
 test.data$CT <- test.data$CT - 1
-process <- preProcess(as.data.frame(test.data$age), method=c("range"))
-test.data$age <- predict(process, as.data.frame(test.data$age))
+test.data$age <- scale(test.data$age)
 
 
 ###################################### Formatting the training data
 train.features <- train.data[, c("motor", "pupil", "age", "CT")]
-train.features$motor <- to_categorical(train.features$motor, 6)
 train.features$pupil <- to_categorical(train.features$pupil, 3)
+train.features$motor <- to_categorical(train.features$motor, 6)
 train.features$CT <- to_categorical(train.features$CT, 6)
 train.x <- as.matrix(train.features)
 
@@ -46,8 +40,8 @@ train.y <- to_categorical(train.data$eGOS, 8) # <--- antalet labels
 
 ###################################### Formatting the testing data
 test.features <- test.data[, c("motor", "pupil", "age", "CT")]
-test.features$motor <- to_categorical(test.features$motor, 6)
 test.features$pupil <- to_categorical(test.features$pupil, 3)
+test.features$motor <- to_categorical(test.features$motor, 6)
 test.features$CT <- to_categorical(test.features$CT, 6)
 test.x <- as.matrix(test.features)
 
@@ -60,22 +54,26 @@ test.y <- to_categorical(test.data$eGOS, 8) # <--- antalet labels
 
 model <- keras_model_sequential() 
 model %>% 
-  layer_dense(units = 6, activation = 'relu', input_shape = c(16)) %>%  # <------- Input shape ?r antalet kolumner i train.x (antal features).
+  layer_dense(units = 10, activation = 'relu', input_shape = c(16)) %>%  # <------- Input shape ?r antalet kolumner i train.x (antal features).
   layer_dropout(rate = 0.5) %>% 
-  layer_dense(units = 6, activation = 'relu') %>%
+  layer_dense(units = 10, activation = 'relu') %>%
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 10, activation = 'relu') %>%
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 10, activation = 'relu') %>%
   layer_dropout(rate = 0.5) %>% 
   layer_dense(units = 8, activation = 'softmax')
 
 summary(model)
 
-model %>% compile(loss = 'mean_absolute_error', optimizer = optimizer_rmsprop(learning_rate=0.2), metrics = c('mae'))
+model %>% compile(loss = 'categorical_crossentropy', optimizer = optimizer_rmsprop(), metrics = c('mae'))
 
 ################################# Training the network
 
 
 history <- model %>% fit(
   train.x, train.y, 
-  epochs = 30, batch_size = 32, 
+  epochs = 30, batch_size = 30, 
   validation_split = 0.2
 )
 plot(history)
@@ -90,10 +88,10 @@ predicted.egos <- apply(probabilities, 1, which.max)
 
 actual.egos <- as.numeric(test.data$eGOS)
 
-MSE2 <- mean((actual.egos - predicted.egos)^2)
-MAE2 <- mean(abs(actual.egos - predicted.egos))
-MSE2
-MAE2
+MSE <- mean((actual.egos - predicted.egos)^2)
+MAE <- mean(abs(actual.egos - predicted.egos))
+MSE
+MAE
 
 
 ############# saving model
