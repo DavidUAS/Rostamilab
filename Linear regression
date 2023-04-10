@@ -1,17 +1,34 @@
 data <- readRDS("Uppsala.data.RDS")
-data$TrainingSet$pupil <- as.factor(data$TrainingSet$pupil)
-data$TrainingSet$motor <- as.factor(data$TrainingSet$motor)
-data$TrainingSet$CT <- as.factor(data$TrainingSet$CT)
-data$TestSet$pupil <- as.factor(data$TestSet$pupil)
-data$TestSet$motor <- as.factor(data$TestSet$motor)
-data$TestSet$CT <- as.factor(data$TestSet$CT)
+
+train.data <- data$TrainingSet
+test.data <- data$TestSet
+
+# Data formatting
+
+train.data$eGOS <- as.factor(train.data$eGOS)
+train.data$age <- as.numeric(train.data$age)
+train.data$pupil <- as.factor(train.data$pupil)
+train.data$motor <- as.factor(train.data$motor)
+train.data$CT <- as.factor(train.data$CT)
+
+train.data$eGOS <- as.numeric(data$TrainingSet$eGOS)
+
+
+test.data$eGOS <- as.factor(test.data$eGOS)
+test.data$age <- as.numeric(test.data$age)
+test.data$pupil <- as.factor(test.data$pupil)
+test.data$motor <- as.factor(test.data$motor)
+test.data$CT <- as.factor(test.data$CT)
+
+test.data$eGOS <- as.numeric(data$TestSet$eGOS)
+
 
 # Fit the linear regression model
 set.seed(0)
-model <- lm(formula = eGOS ~ age + motor + pupil + CT, data = data$TrainingSet)
+model <- lm(formula = eGOS ~ age + motor + pupil + CT, data = train.data)
 
 # Make predictions using the fitted model
-predictions <- predict(model, newdata = data$TestSet)
+predictions <- predict(model, newdata = test.data)
 
 # Print a summary of the model
 summary(model)
