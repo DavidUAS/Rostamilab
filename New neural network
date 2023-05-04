@@ -2,7 +2,7 @@ library(keras)
 library(tfdatasets)
 library(caret)
 
-#################################################### Importing and normalizing the data
+################### Importing and normalizing the data
 
 data <- readRDS("Uppsala.data.RDS")
 
@@ -27,7 +27,7 @@ data_processed <- cbind(data_onehot, age)
 target_onehot <- to_categorical(data$eGOS - 1)
 
 
-##################### Model creation
+################### Model creation
 create_model <- function() {
   model <- keras_model_sequential() %>%
     layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
@@ -44,7 +44,8 @@ create_model <- function() {
   return(model)
 }
 
-############################# k-fold cross validation
+
+################### k-fold cross validation
 folds <- createFolds(data$eGOS, k = 10)
 
 
@@ -79,7 +80,8 @@ for (i in seq_along(folds)) {
 # Calculate the average accuracy
 cat("Average accuracy:", mean(accuracy_list), "\n")
 
-######################## Creating the final model
+
+################### Creating the final model
 
 model <- keras_model_sequential() %>%
   layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
@@ -107,7 +109,8 @@ history <- model %>% fit(
   validation_split = 0
 )
 
-######################## Evaluation of the network
+
+################### Evaluation of the network
 test.data <- readRDS("Uppsala.data.RDS")
 test.data <- test.data$TestSet
 
@@ -130,7 +133,8 @@ test.y <- to_categorical(test.data$eGOS - 1)
 evaluate(model, test.x, test.y)
 
 
-######################################### Predictions in test data
+
+################### Predictions in test data
 probabilities <- predict(model, test.x)
 predicted.egos <- apply(probabilities, 1, which.max)
 table(predicted.egos)
@@ -139,6 +143,6 @@ actual.egos <- as.numeric(test.data$eGOS)
 table(actual.egos)
 
 
-############# saving model
+################### Saving the model
 
 save_model_hdf5(model, file="NewestNN.h5")
