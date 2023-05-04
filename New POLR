@@ -1,0 +1,81 @@
+library(MASS)
+library(caret)
+
+set.seed(0) # Set the seed for reproducibility
+
+data <- readRDS("Uppsala.data.RDS")
+
+data <- data$TrainingSet
+
+
+set.seed(0)
+
+
+################ Data preprocessing
+
+data$age <- as.numeric(data$age)
+data$pupil <- as.factor(data$pupil)
+data$motor <- as.factor(data$motor)
+data$CT <- as.factor(data$CT)
+data$eGOS <- as.factor(data$eGOS)
+
+# Replace 'categorical_feature_1', 'categorical_feature_2', and 'categorical_feature_3' 
+# with the names of your categorical features
+data$cat1_contr <- contr.sum(levels(data$pupil))[(data$pupil)]
+data$cat2_contr <- contr.sum(levels(data$motor))[(data$motor)]
+data$cat3_contr <- contr.sum(levels(data$CT))[(data$CT)]
+
+# Replace 'numerical_feature' with the name of your numerical feature
+numerical_feature_df <- data.frame(numerical_feature = data$age)
+
+# Combine the effect-coded categorical features with the numerical feature
+data_processed <- cbind(data$cat1_contr, data$cat2_contr, data$cat3_contr, numerical_feature_df)
+
+# Remove the original categorical variables
+data_processed <- data_processed[, !colnames(data_processed) %in% c("pupil", "motor", "CT")]
+
+
+################ k-fold cross validation 
+folds <- createFolds(data$eGOS, k = 10)
+
+accuracy_list <- c()
+
+for (i in seq_along(folds)) {
+  cat("Fold", i, "\n")
+  
+  # Split the data into training and validation sets
+  train_indices <- folds[[i]]
+  train_data <- data_processed[-train_indices, ]
+  train_target <- data$eGOS[-train_indices]
+  val_data <- data_processed[train_indices, ]
+  val_target <- data$eGOS[train_indices]
+  
+  # Combine train_target and train_data into a single data frame
+  train_df <- cbind(target = train_target, train_data)
+  
+  # Train the POLR model
+  model <- polr(as.formula(paste("as.factor(target) ~", paste(names(train_data), collapse = " + "))), 
+                data = train_df, 
+                Hess = TRUE, method = "logistic")
+  
+  # Predict on the validation set
+  predictions <- predict(model, newdata = val_data)
+  
+  # Compute the accuracy
+  accuracy <- mean(predictions == val_target)
+  cat("Validation accuracy:", accuracy, "\n")
+  accuracy_list <- append(accuracy_list, accuracy)
+}
+
+# Calculate the average accuracy
+cat("Average accuracy:", mean(accuracy_list), "\n")
+
+############## Creating the final model
+str(data)
+set.seed(0)
+
+model <- polr(eGOS ~  age + motor + pupil + CT, data = data, Hess = TRUE, method = "logistic")
+
+summary(model)
+
+saveRDS(model, file="NewestPOLR.RDS")
