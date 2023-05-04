@@ -79,6 +79,34 @@ for (i in seq_along(folds)) {
 # Calculate the average accuracy
 cat("Average accuracy:", mean(accuracy_list), "\n")
 
+######################## Creating the final model
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
+  layer_dense(units = 800, activation = 'relu') %>%
+  layer_dense(units = 200, activation = 'relu') %>%
+  layer_dense(units = 100, activation = 'relu') %>%
+  layer_dense(units = 8, activation = 'softmax')
+
+model %>% compile(
+  loss = "categorical_crossentropy",
+  optimizer = optimizer_rmsprop(),
+  metrics = c("accuracy")
+)
+
+summary(model)
+
+x = as.matrix(data_processed)
+y = target_onehot
+
+history <- model %>% fit(
+  x = x,
+  y = y,
+  epochs = 24,
+  batch_size = 64,
+  validation_split = 0
+)
+
 ######################## Evaluation of the network
 test.data <- readRDS("Uppsala.data.RDS")
 test.data <- test.data$TestSet
