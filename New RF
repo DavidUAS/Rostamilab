@@ -1,0 +1,147 @@
+library(ggplot2)
+library(cowplot)
+library(caret)
+library(randomForest)
+
+data <- readRDS("Uppsala.data.RDS")
+
+data <- data$TrainingSet
+
+
+set.seed(0)
+
+
+################ Data preprocessing
+
+data$age <- as.numeric(data$age)
+data$pupil <- as.factor(data$pupil)
+data$motor <- as.factor(data$motor)
+data$CT <- as.factor(data$CT)
+data$eGOS <- as.factor(data$eGOS)
+
+dummyVars <- dummyVars(~ motor + pupil + CT, data = data)
+data_onehot <- as.data.frame(predict(dummyVars, newdata = data))
+
+# Combine the one-hot encoded categorical features with the numerical feature
+age <- data.frame(data$age)
+data_processed <- cbind(data_onehot, age)
+
+
+############################ k-fold cross validation
+folds <- createFolds(data$eGOS, k = 10)
+
+accuracy_list <- c()
+
+for (i in seq_along(folds)) {
+  cat("Fold", i, "\n")
+  
+  # Split the data into training and validation sets
+  train_indices <- folds[[i]]
+  train_data <- data_processed[-train_indices, ]
+  train_target <- data$eGOS[-train_indices]
+  val_data <- data_processed[train_indices, ]
+  val_target <- data$eGOS[train_indices]
+  
+  # Train the random forest model
+  model <- randomForest(x = train_data, y = as.factor(train_target), ntree = 500, mtry = 1, importance = TRUE)
+  
+  # Predict on the validation set
+  predictions <- predict(model, newdata = val_data)
+  
+  # Compute the accuracy
+  accuracy <- mean(predictions == val_target)
+  cat("Validation accuracy:", accuracy, "\n")
+  accuracy_list <- append(accuracy_list, accuracy)
+}
+
+# Calculate the average accuracy
+cat("Average accuracy:", mean(accuracy_list), "\n")
+
+# ntree = number of trees in model, default=500
+# mtry = number of variables at each split, default=sqrt of input variables
+# saveRDS(model, file="RF.RDS")
+model
+
+
+######################### Classifying error rate
+# model$err.rate <- error rate of each decision tree / outcome
+oob.error.data <- data.frame(
+  Trees=rep(1:nrow(model$err.rate), time=3),
+  Type=rep(c("OOB", "1", "2", "3", "4", "5", "6", "7", "8"), each=nrow(model$err.rate)),
+  Error=c(model$err.rate[, "OOB"],
+          model$err.rate[, "1"],
+          model$err.rate[, "2"],
+          model$err.rate[, "3"],
+          model$err.rate[, "4"],
+          model$err.rate[, "5"],
+          model$err.rate[, "6"],
+          model$err.rate[, "7"],
+          model$err.rate[, "8"]))
+
+######################## Plotting the error rates data
+ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +
+  geom_line(aes(color=Type))
+
+######################## Modifying the forest ################################################################
+
+######## Changing the number of trees in model (ntree= X), default = 500
+
+######## Changing the number of variables at each split (mtry=x), default=sqrt of input variables ###
+
+
+######## Code for checking the mtry value with the least error rate:
+oob.values <- vector(length=10)
+for(i in 1:10) {
+  temp.model <- randomForest(eGOS ~ ., data=data, mtry=i, ntree=500)
+  oob.values[i] <- temp.model$err.rate[nrow(temp.model$err.rate),1]
+}
+head(oob.values)
+which.min(oob.values)
+
+######################## Evaluation of the model
+data <- readRDS("Uppsala.data.RDS")
+data <- data$TestSet
+
+data$motor <- factor(data$motor)
+data$CT <- factor(data$CT)
+data$pupil <- factor(data$pupil)
+
+
+TestdummyVars <- dummyVars(~ motor + pupil + CT, data = data)
+Testdata_onehot <- as.data.frame(predict(TestdummyVars, newdata = data))
+age <- data.frame(data$age)                  
+test.x <- as.matrix(cbind(Testdata_onehot, age))
+
+test.y <- to_categorical(test.data$eGOS)
+
+
+
+######################################### Predictions in test data
+predicted.egos <- predict(model, test.x)
+predicted.probabilities <- predict(model, test.x, type="prob")
+table(predicted.egos)
+
+actual.egos <- data$eGOS
+
+correct.prediction1 <- as.integer(predicted.egos) == actual.egos
+accuracy <- sum(correct.prediction1) / length(correct.prediction1)
+
+correct.prediction2 <- abs(as.integer(predicted.egos) - actual.egos) <= 1
+AW1 <- sum(correct.prediction2) / length(correct.prediction2)
+
+correct.prediction3 <- abs(as.integer(predicted.egos) - actual.egos) <= 2
+AW2 <- sum(correct.prediction3) / length(correct.prediction3)
+
+accuracy
+AW1
+AW2
+
+######################## Creating the final model
+str(data_processed)
+str(data$eGOS)
+set.seed(0)
+
+model <- randomForest(x = data_processed, y = data$eGOS, ntree = 500, mtry = 1, importance = TRUE)
+model
+
+saveRDS(model, file="NewestRF.RDS")
