@@ -100,29 +100,42 @@ library(randomForest)
 
 
 # NN:
-# Uppsala.data$TestSet$motor <- Uppsala.data$TestSet$motor /10
-# Uppsala.data$TestSet$pupil <- Uppsala.data$TestSet$pupil / 3
-# Uppsala.data$TestSet$age <- Uppsala.data$TestSet$age / 100
-# Uppsala.data$TestSet$CT <- Uppsala.data$TestSet$CT /10
-# test.x <- as.matrix(Uppsala.data$TestSet[, c("motor", "pupil", "age", "CT")])
+Uppsala.data <- Uppsala.data$TestSet
+Uppsala.data$motor <- factor(Uppsala.data$motor)
+Uppsala.data$CT <- factor(Uppsala.data$CT)
+Uppsala.data$pupil <- factor(Uppsala.data$pupil)
+
+
+TestdummyVars <- dummyVars(~ motor + pupil + CT, data = Uppsala.data)
+Testdata_onehot <- as.data.frame(predict(TestdummyVars, newdata = Uppsala.data))
+Testage <- scale(Uppsala.data$age)
+Testage <- data.frame(Testage)                  
+test.x <- as.matrix(cbind(Testdata_onehot, Testage))
 # Uppsala.predicted.gose <- apply(predict(model, test.x), 1, which.max)
 # Uppsala.predicted.probabilities <- as.matrix(predict(model, test.x))
 # colnames(Uppsala.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
 # 
-# Leuven.data$motor <- Leuven.data$motor /10
-# Leuven.data$pupil <- Leuven.data$pupil / 3
-# Leuven.data$age <- Leuven.data$age / 100
-# Leuven.data$CT <- Leuven.data$CT /10
-# test.x.L <- as.matrix(Leuven.data[, c("motor", "pupil", "age", "CT")])
+
+Leuven.data$motor <- factor(Leuven.data$motor)
+Leuven.data$CT <- factor(Leuven.data$CT)
+Leuven.data$pupil <- factor(Leuven.data$pupil)
+TestdummyVars <- dummyVars(~ motor + pupil + CT, data = Leuven.data)
+Testdata_onehot.L <- as.data.frame(predict(TestdummyVars, newdata = Leuven.data))
+Test.L.age <- scale(Leuven.data$age)
+Test.L.age <- data.frame(Test.L.age)                  
+test.x.L <- as.matrix(cbind(Testdata_onehot.L, Test.L.age))
 # Leuven.predicted.gose <- apply(predict(model, test.x.L), 1, which.max)
 # Leuven.predicted.probabilities <- as.matrix(predict(model, test.x.L))
 # colnames(Leuven.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
 # 
-# ProTECT.data$motor <- ProTECT.data$motor /10
-# ProTECT.data$pupil <- ProTECT.data$pupil / 3
-# ProTECT.data$age <- ProTECT.data$age / 100
-# ProTECT.data$CT <- ProTECT.data$CT /10
-# test.x.P <- as.matrix(ProTECT.data[, c("motor", "pupil", "age", "CT")])
+ProTECT.data$motor <- factor(ProTECT.data$motor)
+ProTECT.data$CT <- factor(ProTECT.data$CT)
+ProTECT.data$pupil <- factor(ProTECT.data$pupil)
+TestdummyVars <- dummyVars(~ motor + pupil + CT, data = ProTECT.data)
+Testdata_onehot.P <- as.data.frame(predict(TestdummyVars, newdata = ProTECT.data))
+Test.P.age <- scale(ProTECT.data$age)
+Test.P.age <- data.frame(Test.P.age)                  
+test.x.P <- as.matrix(cbind(Testdata_onehot.P, Test.P.age))
 # ProTECT.predicted.gose <- apply(predict(model, test.x.P), 1, which.max)
 # ProTECT.predicted.probabilities <- as.matrix(predict(model, test.x.P))
 # colnames(ProTECT.predicted.probabilities) <- c("1", "2", "3", "4", "5", "6", "7", "8")
