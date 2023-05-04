@@ -1,38 +1,66 @@
+library(MASS)
+library(caret)
+
 ############### Specifying dataset
 data <- readRDS("Uppsala.data.RDS")
 
-train.data <- data$TrainingSet
-test.data <- data$TestSet
+data <- data$TrainingSet
 
 ################ Formatting data
 
-train.data$eGOS <- as.factor(train.data$eGOS)
-train.data$age <- as.numeric(train.data$age)
-train.data$pupil <- as.factor(train.data$pupil)
-train.data$motor <- as.factor(train.data$motor)
-train.data$CT <- as.factor(train.data$CT)
+data$eGOS <- factor(data$eGOS)
+data$age <- numeric(data$age)
+data$pupil <- factor(data$pupil)
+data$motor <- factor(data$motor)
+data$CT <- factor(data$CT)
 
-train.data$eGOS <- as.factor(data$TrainingSet$eGOS)
+data_processed <- data.frame(data$age, data$pupil, data$motor, data$CT)
 
-
-test.data$eGOS <- as.factor(test.data$eGOS)
-test.data$age <- as.numeric(test.data$age)
-test.data$pupil <- as.factor(test.data$pupil)
-test.data$motor <- as.factor(test.data$motor)
-test.data$CT <- as.factor(test.data$CT)
-
-test.data$eGOS <- as.factor(data$TestSet$eGOS)
 
 str(data)
+
+################ 10-fold cross validation
+folds <- createFolds(data$eGOS, k = 10)
+
+accuracy_list <- c()
+
+for (i in seq_along(folds)) {
+  cat("Fold", i, "\n")
+  
+  # Split the data into training and validation sets
+  train_indices <- folds[[i]]
+  train_data <- data_processed[-train_indices, ]
+  train_target <- data$eGOS[-train_indices]
+  val_data <- data_processed[train_indices, ]
+  val_target <- data$eGOS[train_indices]
+  
+  # Combine train_target and train_data into a single data frame
+  train_df <- cbind(target = train_target, train_data)
+  
+  # Train the POLR model
+  model <- polr(as.formula(paste("as.factor(target) ~", paste(names(train_data), collapse = " + "))), 
+                data = train_df, 
+                Hess = TRUE, method = "logistic")
+  
+  # Predict on the validation set
+  predictions <- predict(model, newdata = val_data)
+  
+  # Compute the accuracy
+  accuracy <- mean(predictions == val_target)
+  cat("Validation accuracy:", accuracy, "\n")
+  accuracy_list <- append(accuracy_list, accuracy)
+}
+
+# Calculate the average accuracy
+cat("Average accuracy:", mean(accuracy_list), "\n")
 
 ################ Setting up the model
 library(MASS)
 
 set.seed(0)
 
-model <- polr(eGOS ~  age + motor + pupil + CT, data = train.data, Hess = TRUE)
+model <- polr(eGOS ~  age + motor + pupil + CT, data = data, Hess = TRUE)
 
 summary(model)
 
 saveRDS(model, file="POLR.RDS")
-
