@@ -1,41 +1,25 @@
 library(MASS)
 library(caret)
 
-set.seed(0) # Set the seed for reproducibility
-
+############### Specifying dataset
 data <- readRDS("Uppsala.data.RDS")
 
 data <- data$TrainingSet
 
+################ Formatting data
 
-set.seed(0)
+data$eGOS <- factor(data$eGOS)
+data$age <- numeric(data$age)
+data$pupil <- factor(data$pupil)
+data$motor <- factor(data$motor)
+data$CT <- factor(data$CT)
 
-
-################ Data preprocessing
-
-data$age <- as.numeric(data$age)
-data$pupil <- as.factor(data$pupil)
-data$motor <- as.factor(data$motor)
-data$CT <- as.factor(data$CT)
-data$eGOS <- as.factor(data$eGOS)
-
-# Replace 'categorical_feature_1', 'categorical_feature_2', and 'categorical_feature_3' 
-# with the names of your categorical features
-data$cat1_contr <- contr.sum(levels(data$pupil))[(data$pupil)]
-data$cat2_contr <- contr.sum(levels(data$motor))[(data$motor)]
-data$cat3_contr <- contr.sum(levels(data$CT))[(data$CT)]
-
-# Replace 'numerical_feature' with the name of your numerical feature
-numerical_feature_df <- data.frame(numerical_feature = data$age)
-
-# Combine the effect-coded categorical features with the numerical feature
-data_processed <- cbind(data$cat1_contr, data$cat2_contr, data$cat3_contr, numerical_feature_df)
-
-# Remove the original categorical variables
-data_processed <- data_processed[, !colnames(data_processed) %in% c("pupil", "motor", "CT")]
+data_processed <- data.frame(data$age, data$pupil, data$motor, data$CT)
 
 
-################ k-fold cross validation 
+str(data)
+
+################ 10-fold cross validation
 folds <- createFolds(data$eGOS, k = 10)
 
 accuracy_list <- c()
@@ -70,12 +54,13 @@ for (i in seq_along(folds)) {
 # Calculate the average accuracy
 cat("Average accuracy:", mean(accuracy_list), "\n")
 
-############## Creating the final model
-str(data)
+################ Setting up the model
+library(MASS)
+
 set.seed(0)
 
-model <- polr(eGOS ~  age + motor + pupil + CT, data = data, Hess = TRUE, method = "logistic")
+model <- polr(eGOS ~  age + motor + pupil + CT, data = data, Hess = TRUE)
 
 summary(model)
 
-saveRDS(model, file="NewestPOLR.RDS")
+saveRDS(model, file="POLR.RDS")
