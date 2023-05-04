@@ -1,0 +1,162 @@
+library(keras)
+library(tfdatasets)
+library(caret)
+
+#################################################### Importing and normalizing the data
+
+data <- readRDS("Uppsala.data.RDS")
+
+data <- data$TrainingSet
+data$motor <- factor(data$motor)
+data$CT <- factor(data$CT)
+data$pupil <- factor(data$pupil)
+
+set.seed(0) # Set the seed for reproducibility
+
+# One hot encoding of categorical features
+dummyVars <- dummyVars(~ motor + pupil + CT, data = data)
+data_onehot <- as.data.frame(predict(dummyVars, newdata = data))
+
+# Combine the one-hot encoded categorical features with the scaled numerical feature
+age <- scale(data$age)
+age <- data.frame(age)                  
+data_processed <- cbind(data_onehot, age)
+
+
+# One hot encoding of EGOS
+target_variable_integer_encoded <- as.integer(as.factor(data$eGOS)) - 1
+str(target_variable_integer_encoded)
+
+
+##################### Model creation
+create_model <- function() {
+  model <- keras_model_sequential() %>%
+    layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
+    layer_dense(units = 800, activation = 'relu') %>%
+    layer_dense(units = 200, activation = 'relu') %>%
+    layer_dense(units = 100, activation = 'relu') %>%
+    layer_dense(units = 8, activation = 'softmax')
+  
+  model %>% compile(
+    loss = "sparse_categorical_crossentropy",
+    optimizer = optimizer_rmsprop(),
+    metrics = c("accuracy")
+  )
+  return(model)
+}
+
+############################# k-fold cross validation
+k <- 10
+folds <- createFolds(target_variable_integer_encoded, k = k, list = TRUE)
+
+
+accuracies <- vector("numeric", length = k)
+
+for (i in 1:k) {
+  cat("Fold", i, "\n")
+  
+  # Split data into training and validation sets for the current fold
+  train_index <- folds[[i]]
+  x_train <- as.matrix(data_processed[-train_index, ])
+  y_train <- target_variable_integer_encoded[-train_index]
+  x_val <- as.matrix(data_processed[train_index, ])
+  y_val <- target_variable_integer_encoded[train_index]
+  
+  # Define the model
+  model <- keras_model_sequential() %>%
+    layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
+    layer_dense(units = 800, activation = 'relu') %>%
+    layer_dense(units = 200, activation = 'relu') %>%
+    layer_dense(units = 100, activation = 'relu') %>%
+    layer_dense(units = 8, activation = 'softmax')
+  
+  # Compile the model
+  model %>% compile(
+    loss = "sparse_categorical_crossentropy",
+    optimizer = optimizer_rmsprop(),
+    metrics = c("accuracy")
+  )
+  
+  # Train the model
+  history <- model %>% fit(
+    x = x_train,
+    y = y_train,
+    epochs = 24,
+    batch_size = 64,
+    validation_data = list(x_val, y_val),
+    verbose = 1
+  )
+  
+  # Evaluate the model on the validation set and store the accuracy
+  results <- model %>% evaluate(x_val, y_val)
+  cat("Accuracy:", results["accuracy"], "\n\n")
+  accuracies[i] <- results["accuracy"]
+}
+
+cat("Mean Accuracy:", mean(accuracies), "\n")
+
+################### Creating the final model
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 1600, activation = 'relu', input_shape = ncol(data_processed)) %>%
+  layer_dense(units = 800, activation = 'relu') %>%
+  layer_dense(units = 200, activation = 'relu') %>%
+  layer_dense(units = 100, activation = 'relu') %>%
+  layer_dense(units = 8, activation = 'softmax')
+
+model %>% compile(
+  loss = "sparse_categorical_crossentropy",
+  optimizer = optimizer_rmsprop(),
+  metrics = c("accuracy")
+)
+
+summary(model)
+
+x = as.matrix(data_processed)
+y = target_variable_integer_encoded
+
+history <- model %>% fit(
+  x = x,
+  y = y,
+  epochs = 24,
+  batch_size = 64,
+  validation_split = 0
+)
+
+
+################### Evaluation of the network
+test.data <- readRDS("Uppsala.data.RDS")
+test.data <- test.data$TestSet
+
+test.data$motor <- factor(test.data$motor)
+test.data$CT <- factor(test.data$CT)
+test.data$pupil <- factor(test.data$pupil)
+
+
+TestdummyVars <- dummyVars(~ motor + pupil + CT, data = test.data)
+Testdata_onehot <- as.data.frame(predict(TestdummyVars, newdata = test.data))
+Testage <- scale(test.data$age)
+Testage <- data.frame(Testage)                  
+test.x <- as.matrix(cbind(Testdata_onehot, Testage))
+
+
+# Replace 'target' with the name of your target variable
+test.y <- as.integer(as.factor(test.data$eGOS)) - 1
+
+
+evaluate(model, test.x, test.y)
+
+
+
+################### Predictions in test data
+probabilities <- predict(model, test.x)
+predicted.egos <- apply(probabilities, 1, which.max)
+table(predicted.egos)
+
+actual.egos <- as.numeric(test.data$eGOS)
+table(actual.egos)
+
+
+################### Saving the model
+
+save_model_hdf5(model, file="NewestNN.h5")
