@@ -1,0 +1,151 @@
+library(ggplot2)
+library(reshape)
+library(tfdatasets)
+library(MASS)
+library(shiny)
+library(rsconnect)
+
+model <- readRDS("NewestPOLR.RDS")
+
+########################### ShinyYoda
+
+ui.blue <- "#428bca"
+ui.red <- "red"
+
+initial.age.selection <- 18
+age.slider <- function(){
+  numericInput(
+    inputId = "age",
+    label = "Age:",
+    value = initial.age.selection,
+    min = 18,
+    max = 120,
+    step = 1)
+}
+
+initial.motor.selection <- 4
+motor.slider <- function(){
+  sliderInput(
+    inputId = "motor",
+    label = "GCS-motor at admission", 
+    min = 1,
+    max = 6,
+    value = initial.motor.selection,
+    step = 1
+  )
+}
+
+names <- c("None reacts", "One side reacts", "Both reacts")
+values <- c(3, 2, 1)
+pupil.slider <- function(){
+  radioButtons(
+    inputId = "pupil",
+    label = "Pupillary reaction on admission",
+    choiceNames = names,
+    choiceValues = values,
+  )
+}
+
+initial.CT.selection <- 1
+CT.slider <- function(){
+  sliderInput(
+    inputId = "CT",
+    label = "CT Marshall score at admission", 
+    min = 1,
+    max = 6,
+    value = initial.CT.selection,
+    step = 1
+  )
+}
+
+plot.distribution <- function(probabilities){
+  bar.color <- rep(ui.blue, 8)
+  bar.color[which.max(probabilities)] <- ui.red
+  
+  barplot(
+    height = probabilities,
+    names.arg = 1:8,
+    xlab = "GOS-E",
+    ylab = "Probability",
+    col = bar.color
+  )
+}
+
+generate.prediction.text <- function(prediction){
+  prediction.numeric <- as.numeric(prediction)
+  prediction.text <- as.character(prediction)
+  
+  paste0(
+    "GOS-E: ",
+    prediction.numeric,
+    "\n",
+    prediction.text
+  )
+}   
+
+ui <- fluidPage(
+  titlePanel("Shiny POLR"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h2(HTML("<u>Patient characteristics</u>")),
+      headerPanel(""),
+      age.slider(),
+      motor.slider(),
+      pupil.slider(),
+      CT.slider(),
+
+      
+    ),
+    
+    mainPanel(
+      h2(HTML("<u>Probability distribution</u>")),
+      plotOutput("plot"),
+      h2(HTML("<u>Predicted outcome</u>")),
+      verbatimTextOutput("predicted.outcome")
+    )
+  )
+)
+
+server <- function(input, output, session){
+  
+  age.reactive <- reactive({
+    req(input$age)
+    validate(
+      need(is.numeric(as.numeric(input$age)), "Please enter a numeric value for age.")
+    )
+    as.numeric(input$age)
+  })
+  
+  
+  age.reactive <- reactive(as.numeric(input$age))
+  motor.reactive <- reactive(factor(input$motor))
+  pupils.reactive <- reactive(factor(input$pupil))
+  CT.reactive <- reactive(factor(input$CT))
+  
+  input.values <- reactive(
+    as.matrix(data.frame(
+      age = age.reactive(),
+      motor = motor.reactive(),
+      pupil = pupils.reactive(),
+      CT = CT.reactive()
+    )
+    ))
+  model.prediction <- reactive(
+    predict(model, input.values())
+  )
+  
+  model.probabilities <- reactive(
+    predict(model, input.values(), type = "p")
+  )
+  
+  output$plot <- renderPlot(
+    plot.distribution(model.probabilities())
+  )
+  
+  predicted.egos <- reactive(as.integer(model.prediction()))
+  
+  output$predicted.outcome <- renderText(predicted.egos())
+}
+
+shinyApp(ui = ui, server = server)
