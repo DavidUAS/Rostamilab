@@ -1,0 +1,119 @@
+library(MASS)
+library(cli)
+library(caret)
+library(keras)
+
+source("BalancedDatasetSplit.R")
+source("BalanceByDownsampling.R")
+source("EvaluatePredictions.R")
+source("CreateEvaluationGraphs.R")
+
+set.seed(0)
+
+############### Specifying dataset
+data1 <- readRDS("Uppsala.data.RDS")
+
+data <- data1$TrainingSet
+testset<- data1$TestSet
+
+################ Formatting data
+
+data$eGOS <- factor(data$eGOS)
+data$age <- as.numeric(scale(data$age))
+data$pupil <- factor(data$pupil)
+data$motor <- factor(data$motor)
+data$CT <- factor(data$CT)
+complete.trainingset <- data
+str(complete.trainingset)
+
+testset$eGOS <- factor(testset$eGOS)
+testset$age <- as.numeric(scale(testset$age))
+testset$pupil <- factor(testset$pupil)
+testset$motor <- factor(testset$motor)
+testset$CT <- factor(testset$CT)
+str(testset)
+
+### Single model ###
+single.model <- polr(eGOS ~  . , data = complete.trainingset, Hess = TRUE)
+
+single.model.predictions <- as.integer(predict(single.model, testset))
+
+single.model.evaluation <- EvaluatePredictions(
+  predicted.gose = single.model.predictions,
+  observed.gose = as.integer(testset$eGOS))
+
+single.model.graphs <- CreateEvaluationGraphs(
+  predicted.gose = single.model.predictions,
+  observed.gose = as.integer(testset$eGOS),
+  plot.graphs = T)
+
+### Random under-sampling and ensemble ###
+num.base.models <- 10000
+category.size <- 35
+
+balanced.trainingset.list <- vector("list", num.base.models)
+for (i in 1:num.base.models) {
+  balanced.set <- BalanceByDownsampling(
+    dataset.to.balance = complete.trainingset,
+    max.category.size = category.size,
+    category.column = "eGOS")
+  
+  balanced.trainingset.list[[i]] <- balanced.set
+}
+
+base.model.list <- vector("list", num.base.models)
+cli_progress_bar("Training models", total = num.base.models)
+for (i in 1:num.base.models) {
+  cli_progress_update()
+  balanced.trainingset <- balanced.trainingset.list[[i]]
+  base.model <- polr(eGOS ~  . , data = balanced.trainingset, Hess = TRUE)
+  
+  base.model.list[[i]] <- base.model
+}
+cli_progress_done()
+
+probability.matrix.list <- vector("list", num.base.models)
+for (i in 1:num.base.models) {
+  base.model <- base.model.list[[i]]
+  probability.matrix <- predict(base.model, testset, type = "probs")
+  
+  probability.matrix.list[[i]] <- probability.matrix
+}
+
+# Initialize a matrix to store the median probabilities
+median.probability.matrix <- matrix(NA, nrow = nrow(testset), ncol = 8)
+
+for (patient.index in 1:nrow(testset)) {
+  for (category.index in 1:8) {
+    model.probabilities <- rep(NA, num.base.models)
+    for (model.index in 1:num.base.models) {
+      model.probabilities[model.index] <- probability.matrix.list[[model.index]][patient.index, category.index]
+    }
+    # Compute the median of the model probabilities
+    median.probability <- median(model.probabilities)
+    median.probability.matrix[patient.index, category.index] <- median.probability
+  }
+}
+
+# Initialize a vector to store the predictions
+predictions <- rep(NA, nrow(testset))
+
+for (i in 1:nrow(testset)) {
+  # Assign the class with the highest median probability as the predicted class
+  predicted.category <- which.max(median.probability.matrix[i, ])
+  predictions[i] <- predicted.category
+}
+
+table(predictions)
+table(testset$eGOS)
+
+model.evaluation <- EvaluatePredictions(
+  predicted.gose = predictions,
+  observed.gose = as.integer(testset$eGOS))
+
+model.evaluation
+
+graphs <- CreateEvaluationGraphs(
+  predicted.gose = predictions,
+  observed.gose = as.integer(testset$eGOS),
+  plot.graphs = T)
